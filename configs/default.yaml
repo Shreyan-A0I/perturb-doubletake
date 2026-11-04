@@ -1,0 +1,19 @@
+data:
+  # Use the file GEARS downloads, so the nulls and GEARS share one gene set.
+  # scripts/train_gears.py writes it to <gears_dir>/norman/perturb_processed.h5ad
+  path: data/gears/norman/perturb_processed.h5ad
+  condition_col: null      # auto-detect: condition | perturbation | perturbation_name
+  sep: null                # auto-detect: "+" if present, else "_"
+  normalize: auto          # auto | yes | no  (auto = log1p-normalize only if X looks like counts)
+  n_top_genes: null        # null keeps every gene in the file (GEARS file already has 5,045)
+
+analysis:
+  split_seeds: [0, 1, 2, 3, 4]   # random half-splits of each condition's cells
+  top_k_deg: 20                  # DEGs chosen from half 1, scored on half 2
+  lowrank_k: 10                  # rank for the low-rank additive null
+  n_boot: 2000                   # bootstrap resamples over perturbation pairs
+  n_strata: 3                    # eta tertiles
+
+output:
+  results_dir: results
+  figures_dir: figures
