@@ -83,6 +83,18 @@ This README is the shared source of truth for the project: context, decisions, d
 - **Backup only:** scPerturb Norman, https://zenodo.org/records/13350497, file `NormanWeissman2019_filtered.h5ad` (699 MB). It has a different gene set, so do not mix it with the GEARS file
 - **Raw, not needed:** GEO GSE133344
 - **Sanity check after download:** `run_baselines.py` prints the dataset size first. It should be close to 105 singles and 131 doubles. If not, the condition labels were parsed wrong
+- **Check we have the same data:** both machines should give exactly 91,205 cells, 5,045 genes, 105 singles, 131 doubles:
+  ```bash
+  python -c "import sys; sys.path.insert(0,'src'); from rolloutprobe.data import load_h5ad; d=load_h5ad('data/gears/norman/perturb_processed.h5ad'); print(d.n_cells,'cells', len(d.genes),'genes', len(d.singles()),'singles', len(d.doubles()),'doubles')"
+  ```
+  And the files should match these SHA-256 checksums (`shasum -a 256 <file>`):
+  ```
+  23ffb0fac6a847ff927cf7509d80d85052bfefbfb97610786a2dafaaefa0b6a0  data/gears/norman/perturb_processed.h5ad
+  e0cdc85330b468c0b99fa4929f18c411124bca60a88153566ad1dd858d73a806  data/gears/norman/go.csv
+  f145c5e84a53048d87942a417d870a4f2d8db50200b96e492b358c13aba8c771  data/gears/gene2go_all.pkl
+  46c3dfe354d8ad5c0da22c69f3d0ca451987b1a61ed9d984279b22b9565ff8d7  data/gears/essential_all_data_pert_genes.pkl
+  ```
+  The two `.pkl` files are only needed for GEARS training; the baselines need just the `.h5ad`
 
 **Software**
 
