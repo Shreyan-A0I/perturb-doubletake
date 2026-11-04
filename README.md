@@ -13,9 +13,9 @@ This README is the shared source of truth for the project: context, decisions, d
 
 *Update this block whenever something changes.*
 
-- **Last updated:** 2026-11-03 by Shreyan
+- **Last updated:** 2026-11-04 by Datta
 - **Next deadline:** Midterm report, Nov 6 (confirm exact time)
-- **Phase:** Midterm sprint. Nothing has run on real data yet
+- **Phase:** Midterm sprint. Baselines and eta reliability done on real Norman data; GEARS pending
 - **Blockers:** None
 
 ---
@@ -146,17 +146,17 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 - [ ] [S] Repo created and scaffold pushed
 - [ ] [S] Add Datta as a collaborator on GitHub (needs his GitHub username)
-- [ ] [S+D] Each of us clones the repo, runs `pytest -q`, and gets 6 passed
+- [ ] [S+D] Each of us clones the repo, runs `pytest -q`, and gets 6 passed (D done 2026-11-04)
 - [ ] [S] GPU environment: torch + torch_geometric + cell-gears installed
 - [ ] [S] Norman downloaded to `data/gears/`; file path shared with Datta
-- [ ] [D] Norman copied to Datta's machine; counts check out (~105 singles, ~131 doubles)
+- [x] [D] Norman copied to Datta's machine; counts check out (~105 singles, ~131 doubles) (D 2026-11-04: 91205 cells, 5045 genes, 105 singles, 131 doubles; checksums match)
 
 ### Midterm sprint (due Nov 6)
 
 **Results**
 
-- [ ] [D] `run_baselines.py` on Norman: null hierarchy + eta reliability
-- [ ] [D] `make_figures.py`: Fig 1 (eta reliability), Fig 2 (null hierarchy), Fig 3 (additive error vs eta)
+- [x] [D] `run_baselines.py` on Norman: null hierarchy + eta reliability (D 2026-11-04)
+- [x] [D] `make_figures.py`: Fig 1 (eta reliability), Fig 2 (null hierarchy), Fig 3 (additive error vs eta) (D 2026-11-04)
 - [ ] [S] Train GEARS, standard split (`train_gears.py --split standard`)
 - [ ] [S] Train GEARS, strict split (`train_gears.py --split strict`)
 - [ ] [S] `run_model.py --joint-only` for both GEARS models; rerun `make_figures.py`
@@ -165,10 +165,10 @@ Step-by-step version of the setup and results items, with commands and expected 
 **Report sections**
 
 - [ ] [S] Introduction / motivation: from the proposal, plus the reviewer changes
-- [ ] [D] Related work: the papers that differ least from ours, and exactly how
+- [ ] [D] Related work: the papers that differ least from ours, and exactly how (drafted D 2026-11-04; citations to verify)
 - [ ] [S] Methodology: research questions, strict split, split-half design, rollout arms, round-trip gate
-- [ ] [D] Experiments: preliminary results (Figs 1–3, null table, GEARS joint numbers)
-- [ ] [D] Analysis: what the eta reliability and the additive-error trend tell us
+- [ ] [D] Experiments: preliminary results (Figs 1–3, null table, GEARS joint numbers) (drafted D 2026-11-04; GEARS rows pending S3)
+- [ ] [D] Analysis: what the eta reliability and the additive-error trend tell us (drafted D 2026-11-04)
 - [ ] [S+D] Timeline for remaining work (see below)
 - [ ] [S+D] Limitations
 - [ ] [S+D] Proofread; submit
@@ -212,4 +212,5 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 *One line per meaningful result or change, newest first. This doubles as the record for the final report's team contributions section.*
 
+- 2026-11-04 [D] Baselines on Norman (131 doubles, strict split, 5 seeds): additive best, MSE@20DEG 0.081, Pearson delta 0.873; low-rank additive 0.140 / 0.789. Eta split-half Spearman 0.944, 61% of eta^2 is signal. Additive MSE by eta tertile 0.028 / 0.063 / 0.152 (Spearman 0.82 vs eta)
 - 2026-11-03 [S] Scaffold built and tested on synthetic data; repo initialized
