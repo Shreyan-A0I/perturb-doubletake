@@ -1,0 +1,154 @@
+{
+  "n_pairs": 131,
+  "n_singles": 105,
+  "n_genes": 5045,
+  "split_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "eta_reliability": {
+    "n_pairs": 131.0,
+    "spearman_eta_h1_h2": 0.9438402818555491,
+    "pearson_eta_h1_h2": 0.941282724949531,
+    "median_cos_residuals": 0.5490762180016615,
+    "frac_pairs_positive_cross": 0.9954198473282443,
+    "signal_fraction_eta2": 0.6071201150201041,
+    "per_seed_spearman": [
+      0.937,
+      0.932,
+      0.952,
+      0.943,
+      0.955
+    ]
+  },
+  "null_hierarchy": [
+    {
+      "method": "additive",
+      "metric": "mse_20deg",
+      "mean": 0.08092653878772012,
+      "lo": 0.06691234055769038,
+      "hi": 0.09625317969468479,
+      "n": 131
+    },
+    {
+      "method": "lowrank_additive",
+      "metric": "mse_20deg",
+      "mean": 0.1401523015382778,
+      "lo": 0.12343062375587406,
+      "hi": 0.15812124543351136,
+      "n": 131
+    },
+    {
+      "method": "mean",
+      "metric": "mse_20deg",
+      "mean": 0.5749319745791763,
+      "lo": 0.49419183391753957,
+      "hi": 0.6557546724135896,
+      "n": 131
+    },
+    {
+      "method": "nochange",
+      "metric": "mse_20deg",
+      "mean": 0.7339326483539225,
+      "lo": 0.642768202368609,
+      "hi": 0.823642429244186,
+      "n": 131
+    },
+    {
+      "method": "additive",
+      "metric": "pearson_delta",
+      "mean": 0.8731866537875019,
+      "lo": 0.8574291685625344,
+      "hi": 0.8863382375965226,
+      "n": 131
+    },
+    {
+      "method": "lowrank_additive",
+      "metric": "pearson_delta",
+      "mean": 0.7891759931344102,
+      "lo": 0.7658267382046983,
+      "hi": 0.8099679208233423,
+      "n": 131
+    },
+    {
+      "method": "mean",
+      "metric": "pearson_delta",
+      "mean": 0.5333157251481333,
+      "lo": 0.4880394510978769,
+      "hi": 0.5752638048122425,
+      "n": 131
+    },
+    {
+      "method": "nochange",
+      "metric": "pearson_delta",
+      "mean": NaN,
+      "lo": NaN,
+      "hi": NaN,
+      "n": 0
+    },
+    {
+      "method": "additive",
+      "metric": "pearson_delta_20deg",
+      "mean": 0.9585841017476501,
+      "lo": 0.9522660268202449,
+      "hi": 0.9643088010213985,
+      "n": 131
+    },
+    {
+      "method": "lowrank_additive",
+      "metric": "pearson_delta_20deg",
+      "mean": 0.869961588121096,
+      "lo": 0.8472630351944492,
+      "hi": 0.8913888206838996,
+      "n": 131
+    },
+    {
+      "method": "mean",
+      "metric": "pearson_delta_20deg",
+      "mean": 0.643524169582057,
+      "lo": 0.5822709257584484,
+      "hi": 0.6997293239942379,
+      "n": 131
+    },
+    {
+      "method": "nochange",
+      "metric": "pearson_delta_20deg",
+      "mean": NaN,
+      "lo": NaN,
+      "hi": NaN,
+      "n": 0
+    }
+  ],
+  "additive_mse_by_eta_stratum": [
+    {
+      "stratum": "low",
+      "mean": 0.027899718485476396,
+      "lo": 0.023738978063270997,
+      "hi": 0.03248596813481331,
+      "n": 44.0
+    },
+    {
+      "stratum": "mid",
+      "mean": 0.06300067419119962,
+      "lo": 0.052199339180339865,
+      "hi": 0.07446829879249575,
+      "n": 43.0
+    },
+    {
+      "stratum": "high",
+      "mean": 0.15147181767292703,
+      "lo": 0.12122578248428659,
+      "hi": 0.18610730034365927,
+      "n": 44.0
+    }
+  ],
+  "lowrank_vs_additive_slope_on_eta": {
+    "slope": 0.00964255244066192,
+    "lo": -0.00017726794621634542,
+    "hi": 0.018196164606854942,
+    "n": 131
+  }
+}
