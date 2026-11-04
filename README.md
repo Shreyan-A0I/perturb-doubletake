@@ -140,6 +140,8 @@ pytest -q                          # 6 tests on synthetic data, ~10 s, no downlo
 
 Owner tags: **[S]** Shreyan, **[D]** Datta, **[S+D]** both. Tick items as you finish them and put your initials and the date beside each tick.
 
+Step-by-step version of the setup and results items, with commands and expected output: [docs/TASKS.md](docs/TASKS.md).
+
 ### Setup
 
 - [ ] [S] Repo created and scaffold pushed
