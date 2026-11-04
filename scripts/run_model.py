@@ -97,6 +97,12 @@ def main():
         pb = splits.pseudobulk_by_half(data, halves)
         if model is None or args.model == "oracle_additive":   # oracle is rebuilt per half-split
             model = build_model(args, data, pb, train_singles)
+            if hasattr(model, "can_perturb"):
+                unmodelable = [pr for pr in pairs if not model.can_perturb(pr)]
+                if unmodelable:
+                    pairs = [pr for pr in pairs if pr not in unmodelable]
+                    print(f"excluded {len(unmodelable)} doubles the model cannot perturb: "
+                          f"{['+'.join(pr) for pr in unmodelable]}")
 
         def cells(cond):
             idx = np.flatnonzero((data.cond == cond) & (halves == 2))
