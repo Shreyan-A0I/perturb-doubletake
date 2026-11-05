@@ -16,7 +16,7 @@ This README is the shared source of truth for the project: context, decisions, d
 - **Last updated:** 2026-11-04 by Datta
 - **Next deadline:** Midterm report, Nov 6 (confirm exact time)
 - **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; report sections drafted
-- **Blockers:** None. Code fix needed for strict GEARS is on branch `shreyan/fix-gears-go-filter`; review and merge it
+- **Blockers:** None. Branch `datta/midterm-baselines` holds all midterm results plus the GEARS GO-graph code fix (commit da61e8e); review before merging to main
 
 ---
 
@@ -159,7 +159,7 @@ Step-by-step version of the setup and results items, with commands and expected 
 - [x] [D] `run_baselines.py` on Norman: null hierarchy + eta reliability (D 2026-11-04)
 - [x] [D] `make_figures.py`: Fig 1 (eta reliability), Fig 2 (null hierarchy), Fig 3 (additive error vs eta) (D 2026-11-04)
 - [x] [S] Train GEARS, standard split (`train_gears.py --split standard`) (D for S 2026-11-04, seed 1, 20 epochs)
-- [x] [S] Train GEARS, strict split (`train_gears.py --split strict`) (D for S 2026-11-04, seed 1, 20 epochs; needs fix branch)
+- [x] [S] Train GEARS, strict split (`train_gears.py --split strict`) (D for S 2026-11-04, seed 1, 20 epochs; needs the GO-graph fix, da61e8e)
 - [x] [S] `run_model.py --joint-only` for both GEARS models; rerun `make_figures.py` (D for S 2026-11-04)
 - [x] [S] Stretch: `roundtrip_check.py` on strict GEARS, a single example is enough (D for S 2026-11-04: PASS, but structural; see Log)
 
