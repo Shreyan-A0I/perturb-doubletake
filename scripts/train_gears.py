@@ -56,11 +56,18 @@ def main():
         data = load_h5ad(str(h5ad))
         strict = splits.strict_split(data)
         split_dict, demoted = splits.gears_custom_split(data, strict, val_frac=0.1, seed=args.seed)
+        # PertData.load drops conditions whose genes are not in GEARS's GO graph
+        # (on Norman: RHOXF2BB, KIAA1804, IER5L). Its dataloader cannot see them.
+        kept = set(pert_data.adata.obs["condition"].astype(str))
+        not_in_go = sorted({c for v in split_dict.values() for c in v if c not in kept})
+        split_dict = {k: [c for c in v if c in kept] for k, v in split_dict.items()}
+        if not_in_go:
+            print(f"dropped {len(not_in_go)} labels GEARS cannot model (not in GO graph): {not_in_go}")
         split_path = out / "split.pkl"
         splits.save_pickle(split_dict, str(split_path))
         pert_data.prepare_split(split="custom", split_dict_path=str(split_path))
         info.update(gears_split="custom", split_dict_path=str(split_path),
-                    val_singles_in_doubles=demoted)
+                    val_singles_in_doubles=demoted, not_in_go=not_in_go)
         print(f"strict split: {len(split_dict['train'])} train labels, {len(split_dict['val'])} val, "
               f"{len(split_dict['test'])} test doubles; {len(demoted)} val singles also appear in doubles")
     else:
