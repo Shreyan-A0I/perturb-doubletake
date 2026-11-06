@@ -37,18 +37,19 @@ $\eta$ tertiles using half 1.
 \emph{no change} (control), \emph{train mean} (control + average single shift),
 \emph{additive} (control + $\Delta_A + \Delta_B$) and \emph{low-rank additive} (control +
 rank-10 SVD-denoised $\Delta_A + \Delta_B$). Low-rank additive is the singles-only analogue
-of the linear baseline of Ahlmann-Eltze \& Huber~\cite{ahlmann2025}.
+of the linear baseline of Ahlmann-Eltze et al.~\cite{ahlmann2025}.
 
 \noindent\textbf{Models.} Each model sits behind one interface, $\mathrm{predict}(X,
 \mathrm{pert}) \to X$, which takes cells and returns cells in the same gene space. GEARS's
 own \texttt{predict()} samples control cells internally, so our adapter builds its input
 graph from the expression we pass. Predictions are anchored to the pseudobulk of their input
 condition, so models are not penalised for sampling noise in the $\sim$300 input cells. For
-each held-out pair we compute the \emph{joint} prediction $f(x_0, \{A, B\})$; the
-\emph{carried} rollout $f(f(x_0, A), B)$; the \emph{restated} rollout $f(f(x_0, A), \{A,
-B\})$; and the \emph{measured-input} rollout $f(x_A, B)$, which starts from real
-$A$-perturbed cells and so separates a failure to compose from a failure on generated input
-(RQ3). Rollouts are run in both orders. For GEARS on its standard split, doubles seen in
+each held-out pair we compute the \emph{joint} prediction $f(x_0, \{A, B\})$. The full
+experiment adds the \emph{carried} rollout $f(f(x_0, A), B)$; the \emph{restated} rollout
+$f(f(x_0, A), \{A, B\})$; and the \emph{measured-input} rollout $f(x_A, B)$, which starts
+from real $A$-perturbed cells and so separates a failure to compose from a failure on
+generated input (RQ3). Rollouts will be run in both orders; this midterm reports joint
+predictions only. For GEARS on its standard split, doubles seen in
 training are excluded from scoring.
 
 \noindent\textbf{Round-trip gate.} Before joining the comparison, a model must pass a check

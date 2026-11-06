@@ -25,9 +25,14 @@ cell, so its rollouts are fixed by construction:
 \begin{equation}
 \text{carried: } x + g(A) + g(B), \qquad \text{restated: } x + g(A) + g(A,B).
 \end{equation}
-Order cannot matter, and applying $A$ twice simply doubles its shift. For GEARS, the
-remaining empirical question is whether its own singles, $g(A) + g(B)$, land closer to the
-measured double than its joint $g(A,B)$. scGPT, whose output does depend on the input, is
+The carried rollout cannot depend on order, since $g(A) + g(B)$ is symmetric. The
+restated rollout can: it equals the joint prediction plus an extra $g(A)$, so it counts $A$
+twice and should overshoot the measured double by exactly that shift. Applying $A$ twice
+simply doubles its shift. For GEARS, the remaining empirical question is whether its own
+singles, $g(A) + g(B)$, land closer to the measured double than its joint $g(A,B)$. Because
+$g(A)$ is trained to match each measured single, we expect the carried rollout to score
+close to the \addnull, and so better than GEARS's joint prediction; that would reflect
+addition, not composition. scGPT, whose output does depend on the input, is
 where composition is a genuinely open question.
 
 \noindent\textbf{Caveat: $\eta$ partly tracks effect size.} $\eta$ correlates with the size

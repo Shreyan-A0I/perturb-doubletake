@@ -30,8 +30,8 @@ This README is the shared source of truth for the project: context, decisions, d
   - the model's joint prediction for A+B
   - its sequential rollout, A then B
   - simple baselines, mainly addition: control + effect of A + effect of B
-- **Motivation, not the goal:** a virtual cell world model (Xing & Song, *Cell* 2026) would need exactly this property. We test whether a precondition holds; we are not building a virtual cell
-- **Known starting point:** Ahlmann-Eltze & Huber (*Nat Methods* 2025) showed deep models lose to the additive baseline on Norman doubles. They only tested the joint prediction. Nobody has fed outputs back in
+- **Motivation, not the goal:** a virtual cell world model (Xing & Song, *Cell* 2026, "A world model of the virtual cell") would need exactly this property. We test whether a precondition holds; we are not building a virtual cell
+- **Known starting point:** Ahlmann-Eltze et al. (*Nat Methods* 2025) showed deep models lose to the additive baseline on Norman doubles. They only tested the joint prediction. Nobody has fed outputs back in
 
 ---
 
@@ -108,10 +108,10 @@ This README is the shared source of truth for the project: context, decisions, d
 **Papers**
 
 - Norman et al. 2019, *Science*: https://doi.org/10.1126/science.aax4438
-- Ahlmann-Eltze & Huber 2025, *Nature Methods*: https://doi.org/10.1038/s41592-025-02772-6
+- Ahlmann-Eltze et al. 2025, *Nature Methods*: https://doi.org/10.1038/s41592-025-02772-6
 - GEARS, Roohani et al. 2024, *Nature Biotechnology*: https://doi.org/10.1038/s41587-023-01905-6
 - scGPT, Cui et al. 2024, *Nature Methods*: https://doi.org/10.1038/s41592-024-02201-0
-- Virtual cell world model, Xing & Song 2026, *Cell* (motivation)
+- "A world model of the virtual cell", Xing & Song 2026, *Cell* 189(19) (motivation)
 
 ---
 

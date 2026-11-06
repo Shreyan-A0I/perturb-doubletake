@@ -27,6 +27,8 @@ ORDER = ["nochange", "mean", "additive", "lowrank_additive", "joint", "rollout",
 LABEL = {"nochange": "No change", "mean": "Train mean", "additive": "Additive",
          "lowrank_additive": "Low-rank additive", "joint": "Joint", "rollout": "Rollout",
          "rollout_measured": "Rollout (measured input)"}
+MODEL_LABEL = {"gears_strict": "GEARS, strict split", "gears_standard": "GEARS, standard split"}
+MODEL_ORDER = ["gears_strict", "gears_standard"]
 GREY, ACCENT = "#6b6b6b", "#2f6db5"
 
 plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False,
@@ -60,14 +62,22 @@ def fig_eta(eta: pd.DataFrame, out: Path):
 def fig_hierarchy(res: pd.DataFrame, out: Path, n_boot: int):
     metrics_ = [("mse_20deg", "MSE, top-20 DEGs (lower is better)"),
                 ("pearson_delta", "Pearson delta, all genes (higher is better)")]
+    n_pairs = res.drop_duplicates(["model", "pert_a", "pert_b"]).groupby("model").size()
+    n_all = n_pairs.get("none", n_pairs.max())
+
     def display(r):
         if r["model"] == "none":
             return LABEL.get(r["method"], r["method"])
+        name = MODEL_LABEL.get(r["model"], r["model"])
+        method = "" if r["method"] == "joint" else f": {LABEL.get(r['method'], r['method'])}"
         arm = "" if r["arm"] == "na" else f", {r['arm']}"
-        return f"{r['model']}: {LABEL.get(r['method'], r['method'])}{arm}"
+        n = n_pairs[r["model"]]
+        return f"{name}{method}{arm}" + (f" ({n} pairs)" if n < n_all else "")
 
     def rank(r):
-        return (0 if r["model"] == "none" else 1, r["model"],
+        m = r["model"]
+        return (0 if m == "none" else 1,
+                MODEL_ORDER.index(m) if m in MODEL_ORDER else len(MODEL_ORDER), m,
                 ORDER.index(r["method"]) if r["method"] in ORDER else 99, r["arm"])
 
     res = res.copy()
