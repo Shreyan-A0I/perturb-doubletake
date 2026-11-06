@@ -197,7 +197,8 @@ Step-by-step version of the setup and results items, with commands and expected 
 ## Working conventions
 
 - **Branches:** `main` must always pass `pytest -q`. Do the work on `shreyan/<topic>` or `datta/<topic>` and merge when it works
-- **Never commit** data, models, results or figures. `.gitignore` covers `data/`, `models/`, `results/`, `figures/`, `*.h5ad`, `*.pkl`, `*.pt`. Share results through the drive folder instead
+- **Never commit** data or model checkpoints. `.gitignore` covers `data/`, `models/`, `*.h5ad`, `*.pkl`, `*.pt`, `*.zip`
+- **Results and figures are committed** (`results/`, `figures/`) so both of us work from the same numbers. Keep each file under 5 MB
 - **Results contract:** every prediction is one row in the schema in `src/rolloutprobe/schema.py`
   - Nulls write `results/baselines.csv`
   - Each model writes `results/model_<tag>.csv`

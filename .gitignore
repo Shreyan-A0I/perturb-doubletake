@@ -10,8 +10,6 @@
 CLAUDE.md
 __pycache__/
 data/
-figures/
 lightning_logs/
 /models/
-results/
 wandb/

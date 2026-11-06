@@ -11,8 +11,6 @@ Paper writing for the course project.
 | `midterm/figs/` | Copies of Figs. 1-3 from `../figures/` |
 | `drafts/` | First drafts of the sections, as Markdown |
 
-Editable online version (Claude doc): https://claude.ai/artifact/M3EhwostLA7Hm5wWeLeTgC
-
 ## Build
 
 The template needs pdfLaTeX (Overleaf's default compiler). XeLaTeX and Tectonic fail on

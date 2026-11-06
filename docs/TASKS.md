@@ -5,7 +5,7 @@ Executable version of the midterm items in the [README](../README.md) checklist.
 ## Rules
 
 1. **Work on a branch** named `<shreyan|datta>/<topic>`, for example `datta/midterm-baselines`. Never commit to `main` directly. Never force-push.
-2. **Never commit data or outputs.** `data/`, `results/`, `figures/`, `models/`, `*.h5ad`, `*.pkl`, `*.pt`, `*.zip` stay ignored. Run `git status --short` before every commit and check that only intended files are staged.
+2. **Never commit data or model checkpoints.** `data/`, `models/`, `*.h5ad`, `*.pkl`, `*.pt`, `*.zip` stay ignored. `results/` and `figures/` are committed; keep each file under 5 MB. Run `git status --short` before every commit and check that only intended files are staged.
 3. **Do not edit `src/`, `scripts/` or `tests/` while running these tasks.** If a test or script fails, stop and report the full error. Code fixes are a separate change on their own branch.
 4. **Commit messages are one line**: no body, no trailers. Use the existing git identity; do not change `user.name` or `user.email`.
 5. **Only download the files named in shared step 2.** Ask before downloading anything else.
@@ -127,13 +127,12 @@ python scripts/roundtrip_check.py --model gears --model-dir models/gears_strict_
    - Update "Last updated" in the Status block
 2. Commit and push your branch:
    ```bash
-   git add README.md
-   git status --short        # only README.md should be staged
+   git add README.md results/ figures/
+   git status --short        # only README.md, results/ and figures/ should be staged
    git commit -m "<one-line summary>"
    git push -u origin <your-branch>
    ```
 3. Do not merge into `main`; the branch owner reviews and merges. If both of you edited the README checklist, keep both sets of ticks when resolving the merge.
-4. `results/` and `figures/` are not in git. Upload them to the shared drive (link in the README's Working conventions).
 
 ## Report back
 
