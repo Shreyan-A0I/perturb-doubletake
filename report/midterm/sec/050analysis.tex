@@ -1,0 +1,39 @@
+The midterm results already answer RQ1 for GEARS (it does not beat addition) and reduce RQ2
+for GEARS to a comparison of two additive constructions.
+
+\noindent\textbf{$\eta$ is a sound way to group pairs.} The worry was that ``highly
+non-additive'' pairs might just be the noisiest ones, making their high error a
+regression-to-the-mean artefact. The split-half design rules this out: $\eta$ replicates
+across disjoint cells (Spearman 0.94), and every error is scored on the half not used to
+define the groups. The high-$\eta$ tertile is where a model with real interaction knowledge
+has room to beat addition.
+
+\noindent\textbf{Addition is a hard bar, and the room above it is concentrated.} Most of
+addition's error sits in the top $\eta$ tertile, five times the low tertile's. An overall
+average therefore mostly reflects easy, near-additive pairs, so the rollout analysis will
+report advantage over addition as a function of $\eta$, not as one average.
+
+\noindent\textbf{Ablation: smoothing the singles does not help.} Low-rank addition is worse
+than plain addition on 82\% of pairs. With pseudobulks from roughly 100 to 300 cells, the
+single effects are already precise, so the rank-10 projection removes more real signal than
+noise. A singles-only model must know something about how effects interact to beat addition.
+
+\noindent\textbf{GEARS has not learned interactions, and it cannot carry state.} On the
+strict split, GEARS's error exceeds addition's in every tertile; its gap narrows in the high
+tertile (0.194 vs.\ 0.153) but does not reverse. Its predicted shift also ignores the input
+cell, so its rollouts are fixed by construction:
+\begin{equation}
+\text{carried: } x + g(A) + g(B), \qquad \text{restated: } x + g(A) + g(A,B).
+\end{equation}
+Order cannot matter, and applying $A$ twice simply doubles its shift. For GEARS, the
+remaining empirical question is whether its own singles, $g(A) + g(B)$, land closer to the
+measured double than its joint $g(A,B)$. scGPT, whose output does depend on the input, is
+where composition is a genuinely open question.
+
+\noindent\textbf{Caveat: $\eta$ partly tracks effect size.} $\eta$ correlates with the size
+of the double's shift (Spearman 0.54), and shift size alone predicts additive error about as
+well (0.58). $\eta$ relative to the shift barely predicts it (0.15), and the scale-free \pd
+hardly falls across tertiles (0.880 to 0.862). Part of the trend is ``bigger perturbations
+have bigger absolute errors''. For the final report we will compare models with addition
+within tertiles, which cancels scale, and check conclusions with relative $\eta$ or effect
+size as a covariate.

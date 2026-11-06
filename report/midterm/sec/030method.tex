@@ -1,0 +1,65 @@
+We train on single perturbations only, score every held-out double on cells never used to
+select it, and compare models with the \addnull pair by pair.
+
+\noindent\textbf{Research questions.}
+\begin{itemize}[nosep]
+  \item \textbf{RQ1, joint.} Trained on singles only, does a model predict held-out doubles
+  better than addition, and is any advantage concentrated in measurably non-additive pairs?
+  \item \textbf{RQ2, composition.} Does the rollout $f(f(x, A), B)$ approach the measured
+  double as well as the joint prediction?
+  \item \textbf{RQ3, diagnosis.} When rollout fails, is it because the model cannot accept
+  non-control input, or because its own predictions drift away from real cells?
+\end{itemize}
+
+\noindent\textbf{Data.} Norman et al.~\cite{norman2019} CRISPRa Perturb-seq in K562 cells,
+GEARS-processed: 91,205 cells $\times$ 5,045 genes, 105 singles and 131 doubles. Every
+double has both of its singles measured.
+
+\noindent\textbf{Strict split.} All singles and control are training conditions; all 131
+doubles are test. GEARS's default split instead trains on some doubles. Under ours, a model
+and the \addnull see the same information. For GEARS, 10\% of the singles not involved in
+any double are held out for validation.
+
+\noindent\textbf{Split-half design.} Each condition's cells are split at random into two
+halves, repeated over 5 seeds. Half 1 is for measurement only: the non-additivity score
+$\eta$ and the top-20 differentially expressed genes (DEGs) used for scoring. Half 2 is for
+everything else: inputs to baselines and models, and the targets they are scored against.
+The noise that puts a pair in a ``highly non-additive'' group therefore never appears in its
+scoring target. With $\Delta$ the pseudobulk shift from control in half $h$,
+\begin{equation}
+r_h = \Delta_{AB} - \Delta_A - \Delta_B, \qquad \eta_h = \lVert r_h \rVert .
+\end{equation}
+Because the halves have independent noise, $r_1 \cdot r_2$ is an unbiased estimate of the
+true squared residual, which tells us how much of $\eta$ is signal. Pairs are grouped into
+$\eta$ tertiles using half 1.
+
+\noindent\textbf{Baselines.} All are built from half-2 pseudobulks of training conditions:
+\emph{no change} (control), \emph{train mean} (control + average single shift),
+\emph{additive} (control + $\Delta_A + \Delta_B$) and \emph{low-rank additive} (control +
+rank-10 SVD-denoised $\Delta_A + \Delta_B$). Low-rank additive is the singles-only analogue
+of the linear baseline of Ahlmann-Eltze \& Huber~\cite{ahlmann2025}.
+
+\noindent\textbf{Models.} Each model sits behind one interface, $\mathrm{predict}(X,
+\mathrm{pert}) \to X$, which takes cells and returns cells in the same gene space. GEARS's
+own \texttt{predict()} samples control cells internally, so our adapter builds its input
+graph from the expression we pass. Predictions are anchored to the pseudobulk of their input
+condition, so models are not penalised for sampling noise in the $\sim$300 input cells. For
+each held-out pair we compute the \emph{joint} prediction $f(x_0, \{A, B\})$; the
+\emph{carried} rollout $f(f(x_0, A), B)$; the \emph{restated} rollout $f(f(x_0, A), \{A,
+B\})$; and the \emph{measured-input} rollout $f(x_A, B)$, which starts from real
+$A$-perturbed cells and so separates a failure to compose from a failure on generated input
+(RQ3). Rollouts are run in both orders. For GEARS on its standard split, doubles seen in
+training are excluded from scoring.
+
+\noindent\textbf{Round-trip gate.} Before joining the comparison, a model must pass a check
+on singles. Real $A$-perturbed cells passed through with no new perturbation should come
+back nearly unchanged ($r > 0.95$), and so should the model's own predicted $A$ state.
+Failure on real input means composition cannot be tested for that model; failure only on
+generated input means distribution shift. Order dependence and saturation (applying $A$
+twice) are reported as computational consistency checks only, since Norman measures joint
+perturbations and cannot validate either biologically.
+
+\noindent\textbf{Metrics and inference.} MSE on the top-20 DEGs, and Pearson correlation of
+predicted vs.\ observed shift from control (\pd), over all genes and over the top-20 DEGs.
+Per-pair results are averaged over the 5 seeds. All 95\% intervals come from 2,000 bootstrap
+resamples over pairs, never cells, because the pair is the unit of inference.

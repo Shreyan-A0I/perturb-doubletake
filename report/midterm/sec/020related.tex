@@ -1,0 +1,48 @@
+The closest prior work shows that simple addition beats deep models on Norman doubles; ours
+differs by testing rollout, using a singles-only split, and controlling for measurement
+noise.
+
+\noindent\textbf{Predicting doubles from singles.} Norman et al.~\cite{norman2019} measured
+131 pairwise CRISPRa perturbations and all their singles in K562 cells. Most pairs combine
+roughly additively, with a minority showing synergy, buffering or new behaviour. The dataset
+is the standard benchmark for combinatorial prediction.
+
+\noindent\textbf{Deep perturbation models.} GEARS~\cite{roohani2024gears} encodes each
+perturbed gene through a gene-ontology graph and predicts the perturbed expression of a
+control cell. scGPT~\cite{cui2024scgpt} fine-tunes a pretrained transformer for the same
+task. CPA~\cite{lotfollahi2023cpa} and scGen~\cite{lotfollahi2019scgen} represent
+perturbations as vectors in a learned latent space. State~\cite{arc2025state} is a recent
+large transition model. All are trained and evaluated as one-step maps, control $\to$
+perturbed.
+
+\noindent\textbf{Simple baselines beat deep models.} Ahlmann-Eltze \&
+Huber~\cite{ahlmann2025} showed that adding the two single shifts beats GEARS, scGPT and
+other foundation models on Norman doubles. Related
+benchmarks~\cite{wenteler2024perteval,csendes2024benchmark,vinas2025systema} found that much
+apparent accuracy comes from shifts shared by all perturbations. \Cref{tab:diff} summarises
+how our study differs.
+
+\begin{table}[htb]
+\centering
+\small
+\begin{tabularx}{\linewidth}{lXX}
+\toprule
+ & Prior benchmarks & This work \\
+\midrule
+What is scored & Joint prediction $f(x, A{+}B)$ only & Joint and rollout $f(f(x, A), B)$, both arms \\
+Training split & GEARS default; some doubles in training & All singles train, all 131 doubles test \\
+Noise control & Strata and scores from the same cells & Strata from cell half 1, scores from half 2 \\
+\bottomrule
+\end{tabularx}
+\caption{How this work differs from the closest prior benchmarks.}
+\label{tab:diff}
+\end{table}
+
+\noindent\textbf{Latent-space composition.} scGen and CPA add perturbation vectors inside a
+latent space, the closest prior idea to rollout. There, composition is an assumption built
+into the architecture, not a property tested on measured doubles, and it happens in latent
+space rather than by re-entering the model through its expression input.
+
+\noindent\textbf{Virtual cells and world models.} Xing \& Song~\cite{xingsong2026} argue for
+virtual cells that can be rolled forward under sequences of interventions. Such a model
+needs its outputs to be valid inputs, which is the precondition we test.

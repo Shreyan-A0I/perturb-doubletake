@@ -13,10 +13,10 @@ This README is the shared source of truth for the project: context, decisions, d
 
 *Update this block whenever something changes.*
 
-- **Last updated:** 2026-11-03 by Shreyan
+- **Last updated:** 2026-11-04 by Datta
 - **Next deadline:** Midterm report, Nov 6 (confirm exact time)
-- **Phase:** Midterm sprint. Nothing has run on real data yet
-- **Blockers:** None
+- **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; report sections drafted
+- **Blockers:** None. Branch `datta/midterm-baselines` holds all midterm results plus the GEARS GO-graph code fix (commit da61e8e); review before merging to main
 
 ---
 
@@ -60,6 +60,7 @@ This README is the shared source of truth for the project: context, decisions, d
   - State and CPA are out for time
 - **2026-11-02:** Calendar is 4.5 weeks, not 8. Experiment 3 (ComboSciPlex, Replogle) is cut
 - **2026-11-03:** Midterm scope set to baselines, eta reliability, and GEARS joint prediction
+- **2026-11-04:** GEARS drops conditions whose genes are not in its GO graph (RHOXF2BB, KIAA1804, IER5L). GEARS is scored on the 128 doubles it can perturb (strict) and the nulls are compared on the same pairs; nulls alone still use all 131
 
 ---
 
@@ -146,29 +147,29 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 - [ ] [S] Repo created and scaffold pushed
 - [ ] [S] Add Datta as a collaborator on GitHub (needs his GitHub username)
-- [ ] [S+D] Each of us clones the repo, runs `pytest -q`, and gets 6 passed
-- [ ] [S] GPU environment: torch + torch_geometric + cell-gears installed
-- [ ] [S] Norman downloaded to `data/gears/`; file path shared with Datta
-- [ ] [D] Norman copied to Datta's machine; counts check out (~105 singles, ~131 doubles)
+- [x] [S+D] Each of us clones the repo, runs `pytest -q`, and gets 6 passed (D 2026-11-04; on the oc3 H100 env)
+- [x] [S] GPU environment: torch + torch_geometric + cell-gears installed (D for S 2026-11-04: uv venv, torch 2.14.1+cu126, PyG 2.8.1, cell-gears 0.1.2; numpy 1.26.4, scipy 1.14.1, scanpy 1.10.2 pinned, newer scipy breaks GEARS)
+- [x] [S] Norman downloaded to `data/gears/`; file path shared with Datta (D 2026-11-04, oc3, plus both .pkl files; all checksums match)
+- [x] [D] Norman copied to Datta's machine; counts check out (~105 singles, ~131 doubles) (D 2026-11-04: 91205 cells, 5045 genes, 105 singles, 131 doubles; checksums match)
 
 ### Midterm sprint (due Nov 6)
 
 **Results**
 
-- [ ] [D] `run_baselines.py` on Norman: null hierarchy + eta reliability
-- [ ] [D] `make_figures.py`: Fig 1 (eta reliability), Fig 2 (null hierarchy), Fig 3 (additive error vs eta)
-- [ ] [S] Train GEARS, standard split (`train_gears.py --split standard`)
-- [ ] [S] Train GEARS, strict split (`train_gears.py --split strict`)
-- [ ] [S] `run_model.py --joint-only` for both GEARS models; rerun `make_figures.py`
-- [ ] [S] Stretch: `roundtrip_check.py` on strict GEARS, a single example is enough
+- [x] [D] `run_baselines.py` on Norman: null hierarchy + eta reliability (D 2026-11-04)
+- [x] [D] `make_figures.py`: Fig 1 (eta reliability), Fig 2 (null hierarchy), Fig 3 (additive error vs eta) (D 2026-11-04)
+- [x] [S] Train GEARS, standard split (`train_gears.py --split standard`) (D for S 2026-11-04, seed 1, 20 epochs)
+- [x] [S] Train GEARS, strict split (`train_gears.py --split strict`) (D for S 2026-11-04, seed 1, 20 epochs; needs the GO-graph fix, da61e8e)
+- [x] [S] `run_model.py --joint-only` for both GEARS models; rerun `make_figures.py` (D for S 2026-11-04)
+- [x] [S] Stretch: `roundtrip_check.py` on strict GEARS, a single example is enough (D for S 2026-11-04: PASS, but structural; see Log)
 
 **Report sections**
 
-- [ ] [S] Introduction / motivation: from the proposal, plus the reviewer changes
-- [ ] [D] Related work: the papers that differ least from ours, and exactly how
-- [ ] [S] Methodology: research questions, strict split, split-half design, rollout arms, round-trip gate
-- [ ] [D] Experiments: preliminary results (Figs 1–3, null table, GEARS joint numbers)
-- [ ] [D] Analysis: what the eta reliability and the additive-error trend tell us
+- [ ] [S] Introduction / motivation: from the proposal, plus the reviewer changes (drafted D 2026-11-04; check against proposal wording)
+- [ ] [D] Related work: the papers that differ least from ours, and exactly how (drafted D 2026-11-04; citations to verify)
+- [ ] [S] Methodology: research questions, strict split, split-half design, rollout arms, round-trip gate (drafted D 2026-11-04)
+- [ ] [D] Experiments: preliminary results (Figs 1–3, null table, GEARS joint numbers) (drafted D 2026-11-04, GEARS rows filled)
+- [ ] [D] Analysis: what the eta reliability and the additive-error trend tell us (drafted D 2026-11-04)
 - [ ] [S+D] Timeline for remaining work (see below)
 - [ ] [S+D] Limitations
 - [ ] [S+D] Proofread; submit
@@ -212,4 +213,6 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 *One line per meaningful result or change, newest first. This doubles as the record for the final report's team contributions section.*
 
+- 2026-11-04 [D for S] GEARS seed 1, 20 epochs. Joint MSE@20DEG / Pearson delta: strict 0.181 / 0.673 on 128 doubles (additive on same pairs 0.082 / 0.872; GEARS better on 14% of pairs); standard 0.232 / 0.605 on 71 unseen doubles (additive 0.085 / 0.869). Round-trip on strict: PASS, saturation ratio exactly 1.0. GEARS's forward pass uses input expression only as a final residual (out = x + g(pert)), so its predictions are state-independent and carried rollout is exactly x + g(A) + g(B)
+- 2026-11-04 [D] Baselines on Norman (131 doubles, strict split, 5 seeds): additive best, MSE@20DEG 0.081, Pearson delta 0.873; low-rank additive 0.140 / 0.789. Eta split-half Spearman 0.944, 61% of eta^2 is signal. Additive MSE by eta tertile 0.028 / 0.063 / 0.152 (Spearman 0.82 vs eta)
 - 2026-11-03 [S] Scaffold built and tested on synthetic data; repo initialized

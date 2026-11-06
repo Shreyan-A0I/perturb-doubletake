@@ -56,6 +56,9 @@ class GearsPredictor:
         self.pert_list = list(self.gears.pert_list)
         self._pert_pos = {g: i for i, g in enumerate(self.pert_list)}
 
+    def can_perturb(self, genes) -> bool:
+        return all(g in self._pert_pos for g in genes)
+
     def _pert_idx(self, pert: tuple[str, ...]) -> list[int]:
         if not pert:
             return [-1]                     # GEARS's encoding for control

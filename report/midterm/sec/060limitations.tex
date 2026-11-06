@@ -1,0 +1,16 @@
+The midterm results rest on one dataset, one GEARS seed and joint predictions only.
+\begin{itemize}[nosep]
+  \item \textbf{One dataset.} Norman is the only public set with doubles and all their
+  singles, so we cannot test generality on another cell type or perturbation modality.
+  \item \textbf{Biology of rollout.} Norman's guides act together for the whole experiment.
+  Neither rollout arm matches that exactly, and order and saturation cannot be validated
+  biologically.
+  \item \textbf{One GEARS run.} Each regime was trained once (seed 1, 20 epochs, default
+  hyperparameters); seed-to-seed variation and tuning are untested.
+  \item \textbf{Unpredictable pairs.} GEARS cannot perturb RHOXF2BB, KIAA1804 or IER5L, so 3
+  of 131 doubles are missing from its scores.
+  \item \textbf{Effect-size confound.} $\eta$ partly measures the size of the perturbation,
+  not only its non-additivity (\Cref{sec:analysis}).
+  \item \textbf{Rollout not yet run.} The midterm reports joint predictions only; the
+  composition results are still to come.
+\end{itemize}
