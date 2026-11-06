@@ -1,0 +1,50 @@
+Perturbation response models such as GEARS~\cite{roohani2024gears},
+scGPT~\cite{cui2024scgpt} and State~\cite{arc2025state} predict how a cell's expression
+changes after a genetic perturbation. A control cell goes in; a predicted perturbed profile
+comes out. Because input and output share one expression space, a prediction can in
+principle be fed back in and perturbed again: $\mathrm{predict}(\mathrm{predict}(x, A), B)$.
+If a model has learned a reusable representation of cell state, that rollout should
+approximate the measured double perturbation $A{+}B$. If it is only a one-step map from
+control cells, it should not. As far as we know, no published work has tested which is the
+case.
+
+The question matters because of where the field is heading. Proposals for virtual-cell
+world models~\cite{xingsong2026} envision simulating cells under sequences of interventions,
+which needs a model whose output is a valid input. The starting point is sobering:
+Ahlmann-Eltze \& Huber~\cite{ahlmann2025} showed that on the Norman et
+al.~\cite{norman2019} doubles, deep models do not beat simple addition of the two single
+effects. They evaluated only the joint prediction.
+
+We ask the complementary question: do models compose under their own output? We train on
+single perturbations only, hold out every double, and compare three predictions per pair:
+the model's joint prediction of $A{+}B$, its sequential rollout $A$ then $B$, and simple
+baselines, mainly addition. We do not build a virtual cell; we test whether current models
+meet this precondition on the one dataset where it can be checked against measured
+combinations.
+
+The contributions of this midterm are as follows:
+\begin{itemize}[nosep]
+    \item A singles-only evaluation of perturbation models on all 131 Norman doubles, with a
+    split-half cell design that keeps the noise used to group pairs out of the targets they
+    are scored on.
+    \item Evidence that non-additivity is a reproducible property of each pair, and that the
+    \addnull, the bar every model must clear, fails mainly on strongly non-additive pairs.
+    \item GEARS joint predictions under two training regimes, both clearly worse than
+    addition, and an analysis showing that GEARS's prediction ignores its input state.
+\end{itemize}
+
+\noindent\textbf{Changes since the proposal, in response to reviewers.}
+\begin{enumerate}[nosep]
+  \item \textbf{Two rollout arms.} Norman's doubles keep guide $A$ active throughout, which
+  neither rollout reproduces exactly. We report both \emph{carried} (the second step gets
+  label $B$ only) and \emph{restated} (it gets $A{+}B$).
+  \item \textbf{Round-trip gate.} No model enters the comparison until it passes a full
+  input $\to$ output $\to$ input check on real and generated inputs.
+  \item \textbf{Split-half cells.} Each condition's cells are split into two random halves:
+  one only for measuring non-additivity, the other for everything else.
+  \item \textbf{Two GEARS training regimes.} GEARS is trained on its own standard split as a
+  diagnostic and on our strict singles-only split for the experiment.
+\end{enumerate}
+We also narrowed scope to fit a 4.5-week calendar: the ComboSciPlex and Replogle experiment
+is cut, Geneformer is excluded (it outputs an embedding shift with no expression decoder),
+and State and CPA are out for time. All code is public in the repository linked above.

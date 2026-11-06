@@ -1,28 +1,28 @@
 # Report
 
-Paper writing for the course project. Figures are read from `../figures/`.
+Paper writing for the course project.
 
-| File | What it is |
+| Path | What it is |
 | --- | --- |
-| `midterm.tex` | Midterm report, LaTeX source |
-| `midterm.pdf` | Compiled midterm report, ready to submit |
-| `drafts/midterm_D_sections.md` | First drafts of Related work, Experiments, Analysis |
-| `drafts/midterm_S_sections.md` | First drafts of Introduction, Methodology |
+| `midterm/` | Midterm report on the course template (CMU `preprint.cls`), self-contained Overleaf project |
+| `midterm/main.pdf` | Compiled midterm report, ready to submit |
+| `midterm/main.tex` | Title, authors and section layout; sections live in `midterm/sec/` |
+| `midterm/ref.bib` | References |
+| `midterm/figs/` | Copies of Figs. 1-3 from `../figures/` |
+| `drafts/` | First drafts of the sections, as Markdown |
 
 Editable online version (Claude doc): https://claude.ai/artifact/M3EhwostLA7Hm5wWeLeTgC
 
 ## Build
 
-From this folder, with any LaTeX install:
+The template needs pdfLaTeX (Overleaf's default compiler). XeLaTeX and Tectonic fail on
+the class's microtype settings.
 
-```bash
-pdflatex midterm.tex      # or: tectonic midterm.tex
-```
+- **Overleaf:** zip the `midterm/` folder, then New Project, Upload Project.
+- **Locally:** from `midterm/`, run `pdflatex main && bibtex main && pdflatex main && pdflatex main`.
 
-For Overleaf, upload `midterm.tex` plus `figures/fig1_eta_reliability.pdf`,
-`figures/fig2_null_hierarchy.pdf` and `figures/fig3_additive_vs_eta.pdf`, keeping the
-`figures/` folder one level up or editing the `\includegraphics` paths.
+If figures in `../figures/` are regenerated, copy the PDFs into `midterm/figs/` again.
 
 ## Before submitting
 
-- References 5–11 are marked `% (verify)` in `midterm.tex`; check titles, venues and years.
+- `ref.bib` entries marked `% verify` were written from memory; check titles, venues and years.

@@ -1,0 +1,69 @@
+\documentclass[11pt, logo, nonumbering]{preprint}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\definecolor{mydarkblue}{rgb}{0,0.08,0.45}
+\usepackage[colorlinks=true,linkcolor=mydarkblue,citecolor=mydarkblue,filecolor=mydarkblue,urlcolor=mydarkblue]{hyperref}
+\usepackage{xspace}
+\usepackage{cleveref}
+
+\usepackage[style=numeric-comp,maxbibnames=3,minnames=1,backend=bibtex, doi=false,eprint=false,url=false]{biblatex}
+
+\addbibresource{ref.bib}
+
+\input{pre}
+
+\begin{document}
+
+\title{Do Perturbation Models Compose Under Their Own Output?\\[2pt]
+\large Midterm Report, GenAI in Biomedicine, Fall 2026}
+
+\author{
+\textbf{Shreyan Nalwad} (\texttt{snalwad}) \quad
+\textbf{Sri Datta Bandreddi} (\texttt{sbandred}) \\
+Carnegie Mellon University \\
+\texttt{\{snalwad, sbandred\}@andrew.cmu.edu} \\
+    \href{https://github.com/Shreyan-A0I/perturb-doubletake}{\includegraphics[height=0.4cm]{logo/github.png} \textbf{Shreyan-A0I/perturb-doubletake}}
+}
+
+\maketitle
+
+\begin{abstract}
+\input{sec/000abstract}
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+\input{sec/010intro}
+
+\section{Related Work}
+\label{sec:related}
+\input{sec/020related}
+
+\section{Methodology}
+\label{sec:method}
+\input{sec/030method}
+
+\section{Experiments: Preliminary Results}
+\label{sec:experiment}
+\input{sec/040experiment}
+
+\section{Analysis and Ablations}
+\label{sec:analysis}
+\input{sec/050analysis}
+
+\section{Limitations}
+\label{sec:limitations}
+\input{sec/060limitations}
+
+\section{Timeline for Remaining Work}
+\label{sec:timeline}
+\input{sec/070timeline}
+
+\clearpage
+\printbibliography
+
+\end{document}
