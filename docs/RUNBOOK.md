@@ -81,6 +81,7 @@ src/rolloutprobe/
   schema.py                 results contract + fake_results() for building figures early
   wrapper.py                predict(X, pert) -> X interface; oracle test model
   rollout.py                joint, rollout arms, measured-input arm, saturation, round-trip
+  pair_eval.py              per-pair evaluation: predictions, singles, input sensitivity, interaction recovery
   models/gears_adapter.py   GEARS behind predict()
   models/scgpt_adapter.py   scGPT behind predict(); model/vocab/weight helpers for training
 scripts/
@@ -93,6 +94,7 @@ scripts/
   analyze_rollout.py        advantage over addition vs eta, tertiles, order and arm gaps
   make_figures.py           fig 1 eta reliability, fig 2 hierarchy, fig 3 additive error vs eta
 tests/test_pipeline.py
+tests/test_interaction.py     input sensitivity and interaction recovery on toy models
 tests/test_scgpt_adapter.py   scGPT adapter plumbing with a stand-in model (needs torch)
 ```
 

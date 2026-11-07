@@ -99,3 +99,17 @@ def test_rollout_analysis_on_oracle(synth):
     assert abs(d.loc[("joint", "advantage"), "mean"]) < 1e-5
     assert d.loc[("rollout_carried", "order_gap"), "mean"] < 1e-5
     assert d.loc[("rollout_restated", "order_gap"), "mean"] > 1e-3
+
+
+def test_oracle_new_columns(synth):
+    """A1-A3 columns on the oracle (exactly additive, ignores input state): singles are
+    recorded, input sensitivity is 0, and implied interaction is 0 except restated."""
+    m = pd.read_csv(synth["res"] / "model_oracle.csv")
+    assert {"single", "input_sensitivity"} <= set(m.method)
+    s = m[m.method == "input_sensitivity"]
+    assert (s.sens_rel < 1e-4).all() and s.mse_20deg.isna().all()   # float32 round-off
+    for method, arm in [("joint", "na"), ("rollout", "carried"), ("rollout_measured", "carried")]:
+        g = m[(m.method == method) & (m.arm == arm)]
+        assert (g.int_r_all == 0).all() and (g.int_rel < 1e-4).all(), (method, arm)
+    assert (m[(m.method == "rollout") & (m.arm == "restated")].int_rel > 1e-3).all()
+    assert m.rep_r_all.between(-1, 1).all()

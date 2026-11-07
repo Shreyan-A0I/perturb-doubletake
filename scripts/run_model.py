@@ -1,5 +1,6 @@
 """Experiment 1 for any registered model: joint, rollout (both arms, both orders),
-and rollout from measured input. Writes schema rows to results/model_<tag>.csv,
+rollout from measured input, the model's own singles, input sensitivity (A2) and
+interaction recovery (A3); see rolloutprobe/pair_eval.py. Writes schema rows to results/model_<tag>.csv,
 which make_figures.py picks up automatically next to the nulls.
 
 Uses the same split-half design as the nulls:
@@ -26,7 +27,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rolloutprobe import eta as eta_mod                         # noqa: E402
-from rolloutprobe import metrics, rollout, schema, splits        # noqa: E402
+from rolloutprobe import pair_eval, schema, splits               # noqa: E402
 from rolloutprobe.config import load_config                     # noqa: E402
 from rolloutprobe.data import load_h5ad                         # noqa: E402
 from rolloutprobe.wrapper import get_predictor                  # noqa: E402
@@ -109,41 +110,34 @@ def main():
                     print(f"excluded {len(unmodelable)} doubles the model cannot perturb: "
                           f"{['+'.join(pr) for pr in unmodelable]}")
 
-        def cells(cond):
+        def cells(cond, gen=rng, exclude=None):
             idx = np.flatnonzero((data.cond == cond) & (halves == 2))
-            idx = rng.choice(idx, min(args.max_cells, len(idx)), replace=False)
+            if exclude is not None:
+                idx = np.setdiff1d(idx, exclude)
+            idx = gen.choice(idx, min(args.max_cells, len(idx)), replace=False)
             sub = X[idx]
-            return sub.toarray() if hasattr(sub, "toarray") else np.asarray(sub)
+            return idx, (sub.toarray() if hasattr(sub, "toarray") else np.asarray(sub))
 
-        X0, ctrl2 = cells("ctrl"), pb[("ctrl", 2)]
+        i0, X0 = cells("ctrl")
+        # second control sample for the A2 null; own generator so the draws above and
+        # below (and hence every pre-existing result) are unchanged
+        _, X0b = cells("ctrl", gen=np.random.default_rng(10_000 + seed), exclude=i0)
         et = eta_mod.eta_table(pb, pairs)
         eta_h1 = dict(zip(zip(et["pert_a"], et["pert_b"]), et["eta_h1"]))
 
         for a, b in pairs:
-            target = pb[(f"{a}+{b}", 2)]
-            deg = metrics.top_k_deg(eta_mod.delta(pb, f"{a}+{b}", 1), acfg["top_k_deg"])
             base = {"model": args.tag, "pert_a": a, "pert_b": b,
                     "support": splits.support_tier((a, b), model_singles),
                     "split_seed": seed, "eta_h1": eta_h1[(a, b)]}
-
-            # Anchor each prediction to the half-2 pseudobulk of the condition its input
-            # cells came from. Removes the sampling noise of the ~300 input cells, which
-            # the nulls (built on full pseudobulks) do not carry, so models are not
+            # Predictions are anchored to the half-2 pseudobulk of the condition their
+            # input cells came from. Removes the sampling noise of the ~300 input cells,
+            # which the nulls (built on full pseudobulks) do not carry, so models are not
             # penalized for it. Under an exactly additive model, carried rollout then
             # equals the additive null to floating-point precision (tests check this).
-            x0m = X0.mean(axis=0)
-            preds = [("joint", "na", "na", ctrl2 + rollout.joint(model, X0, a, b) - x0m)]
-            if not args.joint_only:
-                Xa = cells(a)
-                xam = Xa.mean(axis=0)
-                for arm in ("carried", "restated"):
-                    preds.append(("rollout", arm, "ab", ctrl2 + rollout.rollout(model, X0, a, b, arm) - x0m))
-                    preds.append(("rollout", arm, "ba", ctrl2 + rollout.rollout(model, X0, b, a, arm) - x0m))
-                    preds.append(("rollout_measured", arm, "ab",
-                                  pb[(a, 2)] + rollout.rollout_measured(model, Xa, a, b, arm) - xam))
-            for method, arm, order, pred in preds:
-                rows.append({**base, "method": method, "arm": arm, "order": order,
-                             **metrics.score(pred, target, ctrl2, deg)})
+            _, Xa = cells(a)
+            for r in pair_eval.evaluate_pair(model, a, b, pb, X0, X0b, Xa, acfg["top_k_deg"],
+                                             joint_only=args.joint_only):
+                rows.append({**base, **r})
         print(f"  split seed {seed} done ({len(pairs)} pairs)")
 
     res = schema.validate(pd.DataFrame(rows))

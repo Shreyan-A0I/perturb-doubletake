@@ -12,6 +12,7 @@ import pandas as pd
 RESULT_COLUMNS = [
     "model",                # "none" for nulls | "gears_strict" | "gears_standard" | "scgpt"
     "method",               # nochange | mean | additive | lowrank_additive | joint | rollout | rollout_measured
+                            # | single | input_sensitivity (model files; see pair_eval.py)
     "arm",                  # "carried" (label B only) | "restated" (label A+B) | "na"
     "order",                # "ab" | "ba" | "na"
     "pert_a", "pert_b",
@@ -22,11 +23,19 @@ RESULT_COLUMNS = [
 ]
 
 
+# Model files only (rolloutprobe/pair_eval.py documents each). Baseline files lack them.
+OPTIONAL_COLUMNS = [
+    "int_r_20deg", "int_r_all", "int_rel",       # A3 interaction recovery
+    "rep_r_20deg", "rep_r_all",                  # A3 reference: half-1 vs half-2 residual
+    "sens_corr", "sens_rel", "sens_null_rel",    # A2 input sensitivity
+]
+
+
 def validate(df: pd.DataFrame) -> pd.DataFrame:
     missing = [c for c in RESULT_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Results missing columns: {missing}")
-    return df[RESULT_COLUMNS]
+    return df[RESULT_COLUMNS + [c for c in OPTIONAL_COLUMNS if c in df.columns]]
 
 
 def fake_results(n_pairs: int = 131, n_seeds: int = 5, seed: int = 0) -> pd.DataFrame:

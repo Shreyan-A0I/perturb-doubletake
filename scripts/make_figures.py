@@ -80,7 +80,7 @@ def fig_hierarchy(res: pd.DataFrame, out: Path, n_boot: int):
                 MODEL_ORDER.index(m) if m in MODEL_ORDER else len(MODEL_ORDER), m,
                 ORDER.index(r["method"]) if r["method"] in ORDER else 99, r["arm"])
 
-    res = res.copy()
+    res = res[res["method"].isin(ORDER)].copy()      # drops single / input_sensitivity rows
     keys = res[["model", "method", "arm"]].drop_duplicates()
     keys = keys.assign(label=keys.apply(display, axis=1), rank=keys.apply(rank, axis=1))
     res = res.merge(keys, on=["model", "method", "arm"])

@@ -15,6 +15,16 @@ measured-input rollout per arm), on the pairs that model was scored on:
     tertile_<t>    mean advantage within each eta tertile (tertiles fixed on all
                    131 pairs), which cancels the scale of the perturbation.
 
+A1/A2/A3 (when the model file has the columns; see rolloutprobe/pair_eval.py):
+    single_fit_in_sample   the model's own singles vs measured singles, Pearson delta
+    interaction_r          A3: Pearson(implied, measured half-2 interaction), top-20
+                           DEGs and all genes, printed next to its zero (additive
+                           baseline, 0 by construction), the replicate correlation
+                           (half 1 vs half 2) and the noiseless ceiling ~ sqrt(replicate)
+    interaction_size       ||implied interaction|| / ||predicted double shift||
+    sensitivity            A2: sens_corr, sens_rel, sens_null_rel, and the paired
+                           excess sens_rel - sens_null_rel
+
 Plus two consistency checks on the rollout rows:
     order_gap      per-pair |score(A then B) - score(B then A)|. A score-level
                    proxy for order dependence (CSV rows hold scores, not profiles).
@@ -35,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rolloutprobe import eta as eta_mod, stats  # noqa: E402
 
 METRICS = ["mse_20deg", "pearson_delta"]
+NOT_PREDICTIONS = ("single", "input_sensitivity")   # rows that are not predictions of the double
 
 
 def variant(r) -> str:
@@ -80,7 +91,7 @@ def main():
         ref = add[pair_key(add).isin(pairs) & add["split_seed"].isin(mres["split_seed"].unique())]
         ref = ref.assign(method="additive")
         both = pd.concat([mres, ref], ignore_index=True)
-        variants = sorted(mres["method"].unique())
+        variants = sorted(v for v in mres["method"].unique() if not v.startswith(NOT_PREDICTIONS))
         for metric in METRICS:
             for v in variants:
                 adv = stats.advantage(both, metric, v)
@@ -107,6 +118,44 @@ def main():
                 put(model, "carried_minus_restated", metric, "arm_gap",
                     stats.bootstrap_mean(gap.to_numpy(), args.n_boot, 0))
 
+        boot = lambda x: stats.bootstrap_mean(np.asarray(x, dtype=float), args.n_boot, 0)  # noqa: E731
+        mp = mres.assign(pair=pair_key(mres))
+
+        # A1: the model's own singles against the measured singles. In-sample: models
+        # train on singles. Bad fit here contaminates every implied interaction below.
+        sing = mp[mp["method"].str.startswith("single")]
+        if len(sing):
+            gene = np.where(sing["order"] == "a", sing["pert_a"], sing["pert_b"])
+            fit = sing.assign(gene=gene).groupby("gene")["pearson_delta"].mean()
+            put(model, "single", "pearson_delta", "single_fit_in_sample", boot(fit))
+
+        # A3: interaction recovery, always next to its zero and its ceiling
+        if "int_r_all" in mp.columns and mp["int_r_all"].notna().any():
+            pp = mp.groupby(["pair", "method"])[["int_r_20deg", "int_r_all", "int_rel"]].mean()
+            rep = mp.groupby("pair")[["rep_r_20deg", "rep_r_all"]].mean()
+            for g in ("20deg", "all"):
+                col = f"int_r_{g}"
+                r = rep[f"rep_r_{g}"]
+                put(model, "additive (zero)", col, "interaction_r",
+                    {"mean": 0.0, "lo": 0.0, "hi": 0.0, "n": int(len(r))})
+                put(model, "replicate (half 1 vs 2)", col, "interaction_r", boot(r))
+                put(model, "noiseless ceiling", col, "interaction_r", boot(np.sqrt(r.clip(lower=0))))
+                for v in variants:
+                    x = pp.xs(v, level="method")[col]
+                    put(model, v, col, "interaction_r", {**boot(x), "share_positive": float((x.dropna() > 0).mean())})
+            for v in variants:
+                put(model, v, "int_rel", "interaction_size", boot(pp.xs(v, level="method")["int_rel"]))
+
+        # A2: input sensitivity, against the control-vs-control sampling null
+        sens = mp[mp["method"] == "input_sensitivity"]
+        if len(sens):
+            sp = sens.groupby("pair")[["sens_corr", "sens_rel", "sens_null_rel"]].mean()
+            for c in sp.columns:
+                put(model, "input_sensitivity", c, "sensitivity", boot(sp[c]))
+            put(model, "input_sensitivity", "sens_rel_minus_null", "sensitivity",
+                {**boot(sp["sens_rel"] - sp["sens_null_rel"]),
+                 "share_positive": float(((sp["sens_rel"] - sp["sens_null_rel"]).dropna() > 0).mean())})
+
     df = pd.DataFrame(out)
     path = Path(args.out) if args.out else rdir / "rollout_analysis.csv"
     df.to_csv(path, index=False)
@@ -121,6 +170,25 @@ def main():
         print(wide.pivot(index="variant", columns="quantity", values="val").to_string())
         sb = d[d["quantity"] == "advantage"].set_index("variant")["share_better"]
         print("share of pairs better than addition:", ", ".join(f"{k} {v:.0%}" for k, v in sb.items()))
+    fmt = lambda r: f"{r['mean']:+.3f} [{r['lo']:+.3f}, {r['hi']:+.3f}]"  # noqa: E731
+    a3 = df[df["quantity"] == "interaction_r"]
+    for model, d in a3.groupby("model"):
+        print(f"\n{model}: A3 interaction recovery, Pearson(implied, measured half-2 interaction)")
+        print("  zero = additive baseline; replicate = what a second noisy measurement reaches;"
+              " noiseless ceiling ~ sqrt(replicate)")
+        print(d.assign(val=d.apply(fmt, axis=1)).pivot(index="variant", columns="metric", values="val")
+               .to_string())
+    a2 = df[df["quantity"] == "sensitivity"]
+    for model, d in a2.groupby("model"):
+        print(f"\n{model}: A2 input sensitivity (effect of B from real A cells vs from control cells)")
+        print("  sens_rel = ||e(A cells) - e(ctrl)|| / ||e(ctrl)||; sens_null_rel = same between two control"
+              " samples; 0 = prediction ignores the input cell")
+        for _, r in d.iterrows():
+            print(f"  {r['metric']:<20} {fmt(r)}" + (f"  share of pairs > 0: {r['share_positive']:.0%}"
+                                                    if pd.notna(r.get("share_positive")) else ""))
+    sf = df[df["quantity"] == "single_fit_in_sample"]
+    for _, r in sf.iterrows():
+        print(f"\n{r['model']}: own singles vs measured singles (in-sample), Pearson delta {fmt(r)}")
     print(f"\nwrote {path}")
 
 
