@@ -2,6 +2,7 @@
 No model joins the roster until this passes.
 
     python scripts/roundtrip_check.py --model gears --model-dir models/gears_strict_s1 --tag gears_strict
+    python scripts/roundtrip_check.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
     python scripts/roundtrip_check.py --model oracle_additive --data data/synthetic/norman_like.h5ad --tag oracle
 
 For each test gene A, reports:
@@ -40,12 +41,13 @@ from run_model import build_model               # noqa: E402
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--model", required=True, choices=["gears", "oracle_additive"])
+    p.add_argument("--model", required=True, choices=["gears", "scgpt", "oracle_additive"])
     p.add_argument("--tag", required=True)
     p.add_argument("--model-dir", default=None)
     p.add_argument("--gears-data-dir", default="data/gears")
     p.add_argument("--data", default=None)
     p.add_argument("--device", default="cuda")
+    p.add_argument("--batch-size", type=int, default=8, help="scGPT cells per forward pass")
     p.add_argument("--genes", nargs="*", default=None, help="default: 5 singles with most cells")
     p.add_argument("--max-cells", type=int, default=300)
     p.add_argument("--out", default=None)

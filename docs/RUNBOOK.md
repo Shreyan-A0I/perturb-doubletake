@@ -82,14 +82,18 @@ src/rolloutprobe/
   wrapper.py                predict(X, pert) -> X interface; oracle test model
   rollout.py                joint, rollout arms, measured-input arm, saturation, round-trip
   models/gears_adapter.py   GEARS behind predict()
+  models/scgpt_adapter.py   scGPT behind predict(); model/vocab/weight helpers for training
 scripts/
   make_synthetic.py         synthetic Norman-shaped data with planted interactions
   run_baselines.py          midterm items 1-2
   train_gears.py            GEARS, standard or strict split
+  train_scgpt.py            fine-tune pretrained scGPT, strict split
   run_model.py              joint + rollout for any registered model
   roundtrip_check.py        gate 1
+  analyze_rollout.py        advantage over addition vs eta, tertiles, order and arm gaps
   make_figures.py           fig 1 eta reliability, fig 2 hierarchy, fig 3 additive error vs eta
 tests/test_pipeline.py
+tests/test_scgpt_adapter.py   scGPT adapter plumbing with a stand-in model (needs torch)
 ```
 
 ## What is verified and what is not
@@ -105,7 +109,11 @@ that caught the input-sampling bias the anchoring rule fixes.
 `scripts/train_gears.py`. Every GEARS call was checked against GEARS master
 (attribute names, the custom-split pickle, output shape, control handling), but
 none ran here (no GPU, no data access). Run `roundtrip_check.py` before trusting
-any GEARS number.
+any GEARS number. (Since run on real data: see the README log.)
+
+**Written against the scGPT API, not executed:** `models/scgpt_adapter.py` and
+`scripts/train_scgpt.py`. No torch on the machine they were written on. See
+[TASKS.md](TASKS.md) step 0 for what to check against the installed `scgpt`.
 
 **Why GEARS needs a custom adapter at all:** `GEARS.predict()` accepts only a
 perturbation list and samples its own control cells internally. It has no way to

@@ -86,3 +86,16 @@ def test_oracle_rollout_equals_additive_null(synth):
     # restated arm re-applies A, so it must NOT equal addition under this model
     r = m[(m.method == "rollout") & (m.arm == "restated")].set_index(["pert_a", "pert_b", "split_seed"])["mse_20deg"]
     assert (r.to_numpy() > add.loc[r.index].to_numpy() + 1e-3).mean() > 0.9
+
+
+def test_rollout_analysis_on_oracle(synth):
+    """analyze_rollout.py on the oracle: carried rollout has zero advantage over
+    addition (seed-matched) and zero order gap; restated has a nonzero order gap."""
+    out = synth["res"] / "rollout_analysis.csv"
+    run("scripts/analyze_rollout.py", "--results", str(synth["res"]), "--n-boot", "100", "--out", str(out))
+    d = pd.read_csv(out)
+    d = d[d.metric == "mse_20deg"].set_index(["variant", "quantity"])
+    assert abs(d.loc[("rollout_carried_ab", "advantage"), "mean"]) < 1e-5
+    assert abs(d.loc[("joint", "advantage"), "mean"]) < 1e-5
+    assert d.loc[("rollout_carried", "order_gap"), "mean"] < 1e-5
+    assert d.loc[("rollout_restated", "order_gap"), "mean"] > 1e-3

@@ -10,6 +10,7 @@ Uses the same split-half design as the nulls:
 
     python scripts/run_model.py --model gears --model-dir models/gears_strict_s1 --tag gears_strict
     python scripts/run_model.py --model oracle_additive --data data/synthetic/norman_like.h5ad --tag oracle
+    python scripts/run_model.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
     python scripts/run_model.py ... --joint-only        # midterm: skip rollout
 """
 from __future__ import annotations
@@ -46,13 +47,16 @@ def build_model(args, data, pb, train_singles):
             raise ValueError("GEARS gene order differs from the analysis data. Point --data at the "
                              "same perturb_processed.h5ad that GEARS trained on.")
         return m
+    if args.model == "scgpt":
+        return get_predictor("scgpt", model_dir=args.model_dir, genes=data.genes, device=args.device,
+                             batch_size=args.batch_size)
     raise ValueError(args.model)
 
 
 def model_training_view(args, all_singles: list[str]) -> tuple[set[str], set[str]]:
     """(doubles the model trained on, singles the model trained on).
     Doubles it saw are excluded from scoring; singles it saw set the support tier."""
-    if args.model != "gears":
+    if args.model not in ("gears", "scgpt"):
         return set(), set(all_singles)
     info = json.loads((Path(args.model_dir) / "rolloutprobe_split.json").read_text())
     seen = {splits.canonical_key(c) for c in info.get("seen_conditions", [])}
@@ -63,12 +67,13 @@ def model_training_view(args, all_singles: list[str]) -> tuple[set[str], set[str
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--model", required=True, choices=["gears", "oracle_additive"])
+    p.add_argument("--model", required=True, choices=["gears", "scgpt", "oracle_additive"])
     p.add_argument("--tag", required=True, help="model column value, e.g. gears_strict")
     p.add_argument("--model-dir", default=None)
     p.add_argument("--gears-data-dir", default="data/gears")
     p.add_argument("--data", default=None)
     p.add_argument("--device", default="cuda")
+    p.add_argument("--batch-size", type=int, default=8, help="scGPT cells per forward pass")
     p.add_argument("--max-cells", type=int, default=300, help="input cells per prediction")
     p.add_argument("--joint-only", action="store_true")
     p.add_argument("--seeds", type=int, nargs="*", default=None, help="override split seeds")

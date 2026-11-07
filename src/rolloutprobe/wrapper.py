@@ -35,6 +35,8 @@ def register(name: str):
 def get_predictor(name: str, **kwargs) -> Predictor:
     if name == "gears":
         from .models import gears_adapter  # noqa: F401  (registers on import; needs torch)
+    if name == "scgpt":
+        from .models import scgpt_adapter  # noqa: F401  (registers on import; needs torch, scgpt)
     if name not in _REGISTRY:
         raise KeyError(f"Unknown predictor {name!r}. Registered: {sorted(_REGISTRY)}")
     return _REGISTRY[name](**kwargs)
