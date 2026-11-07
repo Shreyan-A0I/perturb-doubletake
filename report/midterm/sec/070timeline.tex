@@ -1,5 +1,7 @@
-The full rollout experiment runs next; by November 15 we decide whether scGPT passes the
-round-trip gate or the study proceeds with GEARS alone (\Cref{tab:timeline}).
+Because GEARS cannot test composition (\Cref{sec:analysis}), scGPT is now required rather than
+optional. Fine-tuning scGPT on the Norman singles under our strict split, starting from the
+pretrained whole-human checkpoint, is already under way. It must pass the round-trip gate by
+November 15 (\Cref{tab:timeline}).
 
 \begin{table}[htb]
 \centering
@@ -8,12 +10,13 @@ round-trip gate or the study proceeds with GEARS alone (\Cref{tab:timeline}).
 \toprule
 By & Owner & Work \\
 \midrule
+In progress & Shreyan & Fine-tune scGPT on Norman singles (strict split) from the whole-human checkpoint \\
 Nov 15 & Shreyan & Full rollout on strict GEARS: both arms, both orders, measured-input control \\
 Nov 15 & Shreyan & Standard-split GEARS rollout as the diagnostic comparison \\
-Nov 15 & Shreyan & scGPT adapter and round-trip gate; joint and rollout only if it passes \\
+Nov 15 & Shreyan & scGPT adapter and round-trip gate, then joint and rollout predictions \\
 Nov 15 & Datta & Rollout analysis: advantage over addition vs.\ $\eta$ (slope + CI), order dependence, arm comparison \\
 \midrule
-Nov 15 & Both & \textbf{Decision: keep scGPT, or GEARS only} \\
+Nov 15 & Both & \textbf{Checkpoint: scGPT round-trip result. A failure is itself a result (RQ3) and we diagnose its cause} \\
 \midrule
 After Nov 15 & Datta & Stability: saturation ratio and drift from real cells over 1 to 10 steps \\
 After Nov 15 & Datta & Effect-size checks: within-tertile comparisons and relative $\eta$ \\
@@ -22,7 +25,8 @@ Dec 3 & Both & Final report and presentation \\
 \bottomrule
 \end{tabularx}
 \caption{Plan for the remaining work. If time runs short we cut, in order: the
-discriminator-based drift metric, five split seeds down to three, scGPT, and the stability
-experiment.}
+discriminator-based drift metric, five split seeds down to three, and the stability experiment.
+scGPT is not on the cut list: it is the only model in the study whose prediction can depend on
+its input cell.}
 \label{tab:timeline}
 \end{table}

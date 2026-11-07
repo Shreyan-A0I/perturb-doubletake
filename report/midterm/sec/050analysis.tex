@@ -1,12 +1,13 @@
 The midterm results already answer RQ1 for GEARS (it does not beat addition) and reduce RQ2
 for GEARS to a comparison of two additive constructions.
 
-\noindent\textbf{$\eta$ is a sound way to group pairs.} The worry was that ``highly
+\noindent\textbf{$\eta$ is reproducible across cells.} The worry was that ``highly
 non-additive'' pairs might just be the noisiest ones, making their high error a
 regression-to-the-mean artefact. The split-half design rules this out: $\eta$ replicates
 across disjoint cells (Spearman 0.94), and every error is scored on the half not used to
-define the groups. The high-$\eta$ tertile is where a model with real interaction knowledge
-has room to beat addition.
+define the groups. Reproducibility alone does not show that $\eta$ measures interaction rather than perturbation
+size; the caveat at the end of this section addresses that. The high-$\eta$ tertile is where a
+model with real interaction knowledge has room to beat addition.
 
 \noindent\textbf{Addition is a hard bar, and the room above it is concentrated.} Most of
 addition's error sits in the top $\eta$ tertile, five times the low tertile's. An overall
@@ -32,8 +33,8 @@ simply doubles its shift. For GEARS, the remaining empirical question is whether
 singles, $g(A) + g(B)$, land closer to the measured double than its joint $g(A,B)$. Because
 $g(A)$ is trained to match each measured single, we expect the carried rollout to score
 close to the \addnull, and so better than GEARS's joint prediction; that would reflect
-addition, not composition. scGPT, whose output does depend on the input, is
-where composition is a genuinely open question.
+addition, not composition. scGPT takes input expression by design, so composition is an open question for it; the
+round-trip gate will test whether its output actually depends on its input.
 
 \noindent\textbf{Caveat: $\eta$ partly tracks effect size.} $\eta$ correlates with the size
 of the double's shift (Spearman 0.54), and shift size alone predicts additive error about as

@@ -4,9 +4,8 @@ $f(f(x, A), B)$, reproduces the measured double perturbation $A{+}B$, a property
 virtual-cell ``world model'' would require. On the Norman et al.\ Perturb-seq dataset, with
 all singles in training and all 131 doubles held out, the \addnull (control + effect of $A$
 + effect of $B$) reaches \pd 0.873. GEARS, trained only on singles, reaches 0.673 and has
-more than twice the additive error on the top-20 genes (0.181 vs.\ 0.082). A split-half
+more than twice the additive error on the top-20 genes (0.181 vs.\ 0.082 on the same 128 doubles). A split-half
 design shows that non-additivity is a reproducible property of each pair (Spearman 0.94
-across disjoint cells), and additive error rises fivefold from the least to the most
-non-additive tertile. Finally, GEARS's predicted shift does not depend on its input cell, so
-its rollout is additive by construction; scGPT is the model where composition remains an
-open question.
+across disjoint cells), and additive error rises fivefold from the least to the most non-additive tertile, though part of this trend reflects perturbation size. Finally, GEARS's predicted shift does not depend on its input cell, so
+its rollout is additive by construction and it cannot test composition. scGPT takes input
+expression by design; we are now fine-tuning it on the singles to test composition directly.

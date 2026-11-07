@@ -15,7 +15,7 @@ This README is the shared source of truth for the project: context, decisions, d
 
 - **Last updated:** 2026-11-04 by Datta
 - **Next deadline:** Midterm report, Nov 6 (confirm exact time)
-- **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; report sections drafted
+- **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; midterm report written; scGPT fine-tuning under way
 - **Blockers:** None. Branch `datta/midterm-baselines` holds all midterm results plus the GEARS GO-graph code fix (commit da61e8e); review before merging to main
 
 ---
@@ -60,6 +60,7 @@ This README is the shared source of truth for the project: context, decisions, d
   - State and CPA are out for time
 - **2026-11-02:** Calendar is 4.5 weeks, not 8. Experiment 3 (ComboSciPlex, Replogle) is cut
 - **2026-11-03:** Midterm scope set to baselines, eta reliability, and GEARS joint prediction
+- **2026-11-06:** GEARS's prediction ignores its input cell (out = x + g(pert)), so its rollout is additive by construction and it cannot test composition. scGPT is now required, not optional, and comes off the cut list. scGPT fine-tuning on the strict split is under way
 - **2026-11-04:** GEARS drops conditions whose genes are not in its GO graph (RHOXF2BB, KIAA1804, IER5L). GEARS is scored on the 128 doubles it can perturb (strict) and the nulls are compared on the same pairs; nulls alone still use all 131
 
 ---
@@ -181,7 +182,7 @@ Step-by-step version of the setup and results items, with commands and expected 
 - [ ] [S] scGPT: wrapper adapter, then round-trip gate. Only if it passes: joint + rollout
 - [ ] [D] Rollout analysis: advantage over additive vs eta (slope + CI), order dependence vs eta, arm comparison
 - [ ] [D] Stability: saturation ratio, drift from real cells over k = 1..10 steps
-- [ ] [S+D] Decide by Nov 15: keep scGPT, or cut to GEARS only
+- [ ] [S] Nov 15: scGPT passes the round-trip gate (fine-tuning under way). A failure is diagnosed, not cut
 - [ ] [S+D] Draft figures for final report by Nov 22
 - [ ] [S+D] Final report + presentation (last class Dec 3)
 
@@ -189,8 +190,9 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 1. Discriminator-based drift metric
 2. Five split seeds down to three
-3. scGPT (GEARS alone is a complete result)
-4. Stability experiment (rollout composition is the core question)
+3. Stability experiment (rollout composition is the core question)
+
+scGPT is not on this list: GEARS cannot test composition, so scGPT is the only model that can.
 
 ---
 
