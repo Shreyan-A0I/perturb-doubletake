@@ -17,8 +17,8 @@ double has both of its singles measured.
 
 \noindent\textbf{Strict split.} All singles and control are training conditions; all 131
 doubles are test. GEARS's default split instead trains on some doubles. Under ours, a model
-and the \addnull see the same information. For GEARS, 10\% of the singles not involved in
-any double are held out for validation.
+and the \addnull see the same information. For GEARS, 10 singles (10\% of all singles), drawn only from those in no
+double, are held out for validation.
 
 \noindent\textbf{Split-half design.} Each condition's cells are split at random into two
 halves, repeated over 5 seeds. Half 1 is for measurement only: the non-additivity score

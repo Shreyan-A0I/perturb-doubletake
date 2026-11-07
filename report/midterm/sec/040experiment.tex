@@ -99,6 +99,6 @@ than addition in every tertile.}
 (KLF1, BAK1, CEBPE, ETS2, UBASH3B). Real $A$-perturbed cells passed through with no new
 perturbation come back with $r = 0.999$ on expression and 0.80 to 0.99 on shifts from
 control, and its own predicted states behave the same. The pass is structural, not learned:
-applying $A$ twice moves the cell exactly as far as applying it once (saturation ratio 1.0
-for all five genes). The GEARS source explains why: input expression enters only as a final
+a second application of $A$ moves the cell exactly as far as the first, so the shift simply
+doubles (saturation ratio 1.0 for all five genes). The GEARS source explains why: input expression enters only as a final
 residual, $\mathrm{out} = x + g(\mathrm{pert})$, and $g$ ignores the input cell.
