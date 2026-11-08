@@ -29,8 +29,9 @@ ORDER = ["nochange", "mean", "additive", "lowrank_additive", "joint", "rollout",
 LABEL = {"nochange": "No change", "mean": "Train mean", "additive": "Additive",
          "lowrank_additive": "Low-rank additive", "joint": "Joint", "rollout": "Rollout",
          "rollout_measured": "Rollout (measured input)"}
-MODEL_LABEL = {"gears_strict": "GEARS, strict split", "gears_standard": "GEARS, standard split"}
-MODEL_ORDER = ["gears_strict", "gears_standard"]
+MODEL_LABEL = {"gears_strict": "GEARS, strict split", "gears_standard": "GEARS, standard split",
+               "scgpt_strict": "scGPT, strict split", "cpa_strict": "CPA, strict split"}
+MODEL_ORDER = ["gears_strict", "gears_standard", "scgpt_strict", "cpa_strict"]
 GREY, ACCENT = "#6b6b6b", "#2f6db5"
 
 plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False,

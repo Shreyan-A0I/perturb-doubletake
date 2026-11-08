@@ -38,7 +38,7 @@ from run_model import build_model                  # noqa: E402
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--model", required=True, choices=["gears", "scgpt", "oracle_additive"])
+    p.add_argument("--model", required=True, choices=["gears", "scgpt", "cpa", "oracle_additive"])
     p.add_argument("--tag", required=True)
     p.add_argument("--model-dir", default=None)
     p.add_argument("--gears-data-dir", default="data/gears")

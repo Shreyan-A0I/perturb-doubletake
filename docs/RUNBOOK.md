@@ -88,11 +88,13 @@ src/rolloutprobe/
   discriminator.py          real vs predicted cells: PCA + logistic regression, cross-validated accuracy
   models/gears_adapter.py   GEARS behind predict()
   models/scgpt_adapter.py   scGPT behind predict(); model/vocab/weight helpers for training
+  models/cpa_adapter.py     CPA behind predict() (encode input, add perturbation embedding, decode)
 scripts/
   make_synthetic.py         synthetic Norman-shaped data with planted interactions
   run_baselines.py          midterm items 1-2
   train_gears.py            GEARS, standard or strict split
   train_scgpt.py            fine-tune pretrained scGPT, strict split (Part C losses behind flags)
+  train_cpa.py              CPA, strict split, tutorial hyperparameters; checks adapter vs CPA.predict
   run_model.py              joint + rollout for any registered model
   roundtrip_check.py        gate 1
   analyze_rollout.py        advantage over addition vs eta, tertiles, order and arm gaps
@@ -105,6 +107,7 @@ tests/test_pipeline.py
 tests/test_new_experiments.py Part B, Part C rows, stability, discriminator on toy inputs
 tests/test_interaction.py     input sensitivity and interaction recovery on toy models
 tests/test_scgpt_adapter.py   scGPT adapter plumbing with a stand-in model (needs torch)
+tests/test_cpa_adapter.py     CPA adapter plumbing with a stand-in module (needs torch)
 ```
 
 ## What is verified and what is not
@@ -128,6 +131,11 @@ Their plumbing is tested with a stand-in network under torch; the real scGPT mod
 has never been loaded. See [TASKS.md](TASKS.md) step 0 for what to check against the
 installed `scgpt`. `latent_additivity.py`, `stability.py` and `drift_discriminator.py`
 are tested end to end on synthetic data with the oracle model.
+
+**Written against the cpa-tools source, not executed:** `models/cpa_adapter.py` and
+`scripts/train_cpa.py`, checked against github.com/theislab/cpa at commit `fbd7c02`
+(cpa-tools 0.8.8). The adapter docstring lists what was verified and what was not;
+[TASKS.md](TASKS.md) step 8b (C2) is the review checklist.
 
 **Why GEARS needs a custom adapter at all:** `GEARS.predict()` accepts only a
 perturbation list and samples its own control cells internally. It has no way to
