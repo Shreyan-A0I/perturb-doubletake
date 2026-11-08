@@ -20,8 +20,17 @@ subset of the rest (the tutorial samples randomly and can drop the flagged gene;
 we always keep it). Prediction uses all genes. Model selection: Pearson delta on
 the validation singles, predicted from control cells.
 
-Writes models/scgpt_strict_s<seed>/: best_model.pt, args.json, vocab.json,
-rolloutprobe_split.json, train_log.csv.
+Writes models/<name>_s<seed>/ (default name scgpt_strict): best_model.pt,
+args.json, vocab.json, rolloutprobe_split.json, train_log.csv.
+
+Part C (off by default; docs/TASKS.md says when to use it): --w-state and
+--w-saturation add rows that start from real cells of training singles
+(rolloutprobe/aux_batches.py):
+    state       real A cell, no flag     -> an A cell
+    saturation  real A cell, flag on A   -> an A cell
+    loss = main MSE + w_state * state MSE + w_saturation * saturation MSE
+Still singles only, so the strict split holds. Use a different --name, e.g.
+    python scripts/train_scgpt.py --seed 1 --name scgpt_carry --w-state 1 --w-saturation 1
 
 STATUS: written against the scGPT API but not executed where it was written. Read
 docs/TASKS.md before running.
@@ -62,15 +71,20 @@ def main():
     p.add_argument("--device", default="cuda")
     p.add_argument("--no-amp", action="store_true")
     p.add_argument("--out", default="models")
+    p.add_argument("--name", default="scgpt_strict", help="output folder is <out>/<name>_s<seed>")
+    p.add_argument("--w-state", type=float, default=0.0, help="Part C: state-preservation loss weight")
+    p.add_argument("--w-saturation", type=float, default=0.0, help="Part C: saturation loss weight")
+    p.add_argument("--aux-batch-size", type=int, default=16, help="Part C: rows per auxiliary kind per step")
     args = p.parse_args()
 
     import torch
+    from rolloutprobe.aux_batches import AuxSampler
     from rolloutprobe.models import scgpt_adapter as sa
 
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
     amp = not args.no_amp and args.device.startswith("cuda")
-    out = Path(args.out) / f"scgpt_strict_s{args.seed}"
+    out = Path(args.out) / f"{args.name}_s{args.seed}"
     out.mkdir(parents=True, exist_ok=True)
 
     # ---- data and split
@@ -95,6 +109,12 @@ def main():
     gpos = {g: i for i, g in enumerate(genes)}
     cell_flags = [[gpos[g] for g in c.split("+")] if c != "ctrl" else [] for c in data.cond]
     print(f"{len(train_idx)} training cells ({len(ctrl_idx)} control)")
+    aux_w = {"state": args.w_state, "saturation": args.w_saturation}
+    aux_w = {k: w for k, w in aux_w.items() if w > 0}
+    if aux_w:
+        aux = AuxSampler(data.cond, [s for s in train if s != "ctrl"])     # training singles only
+        print(f"Part C auxiliary losses {aux_w}, {args.aux_batch_size} rows each per step, "
+              f"from {len(aux.by_cond)} training singles")
 
     # ---- model
     vocab = sa.load_vocab(args.pretrained)
@@ -143,30 +163,44 @@ def main():
         for step in range(n_steps):
             tgt = order[step * args.batch_size:(step + 1) * args.batch_size]
             src = rng.choice(ctrl_idx, len(tgt))
-            flagged = sorted({g for i in tgt for g in cell_flags[i]})
+            row_flags = [cell_flags[i] for i in tgt]           # main rows: flag the target's genes
+            group = [("main", len(tgt))]
+            for kind in aux_w:                                   # Part C rows, appended
+                s_i, t_i, fl = aux.sample(args.aux_batch_size, kind, rng)
+                src, tgt = np.concatenate([src, s_i]), np.concatenate([tgt, t_i])
+                row_flags += [[gpos[g] for g in genes_] for genes_ in fl]
+                group.append((kind, len(s_i)))
+            flagged = sorted({g for fl in row_flags for g in fl})
             rest = np.setdiff1d(np.arange(n_genes), flagged)
             k = max(0, min(args.max_seq_len, n_genes) - len(flagged))
             sel = np.sort(np.concatenate([flagged, rng.choice(rest, k, replace=False)])).astype(np.int64)
 
             flags = np.zeros((len(tgt), n_genes), dtype=np.int64)
-            for r, i in enumerate(tgt):
-                flags[r, cell_flags[i]] = 1
+            for r, fl in enumerate(row_flags):
+                flags[r, fl] = 1
             v_in = torch.from_numpy(rows(src)[:, sel]).to(args.device)
             v_out = torch.from_numpy(rows(tgt)[:, sel]).to(args.device)
             f = torch.from_numpy(flags[:, sel]).to(args.device)
             sel_t = torch.from_numpy(sel).to(args.device)
 
             pred = sa.forward(model, token_ids[sel_t], v_in, f, amp)
-            loss = torch.nn.functional.mse_loss(pred, v_out)
+            per_row = ((pred - v_out) ** 2).mean(dim=1)
+            parts, start = {}, 0
+            for kind, n in group:
+                parts[kind] = per_row[start:start + n].mean()
+                start += n
+            loss = parts["main"] + sum(w * parts[kind] for kind, w in aux_w.items())
             opt.zero_grad()
             scaler.scale(loss).backward()
             scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(opt)
             scaler.update()
-            losses.append(loss.item())
+            losses.append(parts["main"].item())
             if step % 200 == 0:
-                print(f"  epoch {epoch} step {step}/{n_steps} loss {loss.item():.4f}", flush=True)
+                extra = "".join(f", {kind} {parts[kind].item():.4f}" for kind in aux_w)
+                print(f"  epoch {epoch} step {step}/{n_steps} main loss {parts['main'].item():.4f}{extra}",
+                      flush=True)
         sched.step()
 
         score = validate()
@@ -186,7 +220,8 @@ def main():
 
     for f in ("args.json", "vocab.json"):
         shutil.copy(Path(args.pretrained) / f, out / f)
-    info = {"seed": args.seed, "split": "strict", "pretrained": str(args.pretrained),
+    info = {"seed": args.seed, "split": "strict", "pretrained": str(args.pretrained), "name": args.name,
+            "aux_loss_weights": aux_w, "aux_batch_size": args.aux_batch_size if aux_w else 0,
             "val_singles": val, "val_singles_in_doubles": demoted, "best_val_pearson_delta": best,
             "seen_conditions": train + val, "test_conditions": [f"{a}+{b}" for a, b in strict["test"]],
             "genes_not_in_vocab": unknown}

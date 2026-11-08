@@ -161,3 +161,44 @@ class ScGPTPredictor:
             f = flags.unsqueeze(0).expand(v.shape[0], -1)
             outs.append(forward(self.model, self.token_ids, v, f, self.amp).cpu().numpy())
         return np.concatenate(outs, axis=0)
+
+    @torch.no_grad()
+    def embed_means(self, X: np.ndarray) -> dict[str, np.ndarray]:
+        """Part B (scripts/latent_additivity.py). Real cells, no perturbation flags, so
+        the states describe the input cell. Means over cells of:
+            input_tokens   (genes, d) per-gene token embedding entering the transformer
+                           (gene id + value + flag embeddings)
+            last_tokens    (genes, d) per-gene states leaving the last transformer layer,
+                           which is what the decoder reads
+            input_pooled, last_pooled   (d,) the same, averaged over genes
+        Captured with a forward hook on model.transformer_encoder, whose first input is
+        the summed embedding (scgpt TransformerGenerator._encode)."""
+        enc = getattr(self.model, "transformer_encoder", None)
+        if enc is None:
+            raise AttributeError("model has no transformer_encoder; check scgpt TransformerGenerator")
+        X = np.asarray(X.toarray() if hasattr(X, "toarray") else X, dtype=np.float32)
+        cap = {}
+
+        def hook(module, args, kwargs, output):
+            src = args[0] if args else kwargs.get("src")
+            if src is None:
+                raise RuntimeError("could not read the transformer input in the forward hook")
+            cap["input"], cap["last"] = src, output
+
+        handle = enc.register_forward_hook(hook, with_kwargs=True)
+        sums: dict[str, torch.Tensor] = {}
+        try:
+            for i in range(0, len(X), self.batch_size):
+                v = torch.from_numpy(X[i:i + self.batch_size]).to(self.device)
+                f = torch.zeros_like(v, dtype=torch.long)
+                forward(self.model, self.token_ids, v, f, self.amp)
+                for layer in ("input", "last"):
+                    t = cap[layer].float()
+                    if t.shape[:2] != (v.shape[0], v.shape[1]):
+                        raise RuntimeError(f"{layer} states have shape {tuple(t.shape)}, expected "
+                                           f"(batch, genes, d) = ({v.shape[0]}, {v.shape[1]}, d)")
+                    for key, val in ((f"{layer}_tokens", t.sum(0)), (f"{layer}_pooled", t.mean(1).sum(0))):
+                        sums[key] = sums[key] + val if key in sums else val
+        finally:
+            handle.remove()
+        return {k: (s / len(X)).cpu().numpy() for k, s in sums.items()}

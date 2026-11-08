@@ -6,6 +6,8 @@
 Fig 1  eta reliability: half-1 vs half-2 eta, and the cross-half signal estimate
 Fig 2  null hierarchy: mean per method with 95% bootstrap CI over pairs
 Fig 3  additive error vs half-1 eta (independent halves, so no circularity)
+Fig 4  per model: advantage over addition vs half-1 eta, one panel per prediction
+       variant (joint, carried / restated rollout A then B, measured-input carried)
 """
 from __future__ import annotations
 
@@ -117,6 +119,46 @@ def fig_additive_vs_eta(res: pd.DataFrame, eta: pd.DataFrame, out: Path):
     _save(fig, out / "fig3_additive_vs_eta")
 
 
+FIG4_VARIANTS = [("joint", "na", "na", "Joint"), ("rollout", "carried", "ab", "Rollout, carried"),
+                 ("rollout", "restated", "ab", "Rollout, restated"),
+                 ("rollout_measured", "carried", "ab", "Rollout from measured A, carried")]
+
+
+def fig_advantage_vs_eta(res: pd.DataFrame, eta: pd.DataFrame, out: Path):
+    """Advantage = additive MSE - model MSE on the top-20 DEGs, per pair, on the
+    split seeds the model ran (seed-matched, as in analyze_rollout.py)."""
+    models = [m for m in res["model"].unique() if m != "none"]
+    if not models:
+        return
+    e = eta.groupby(["pert_a", "pert_b"])["eta_h1"].mean()
+    e.index = [f"{a}+{b}" for a, b in e.index]
+    add = res[(res["model"] == "none") & (res["method"] == "additive")]
+    models = sorted(models, key=lambda m: (MODEL_ORDER.index(m) if m in MODEL_ORDER else 99, m))
+    fig, axes = plt.subplots(len(models), len(FIG4_VARIANTS), figsize=(9.6, 2.3 * len(models)),
+                             squeeze=False, sharex=True, sharey="row")
+    for i, m in enumerate(models):
+        mres = res[res["model"] == m]
+        ref = add[add["split_seed"].isin(mres["split_seed"].unique())]
+        for j, (method, arm, order, title) in enumerate(FIG4_VARIANTS):
+            ax = axes[i, j]
+            v = mres[(mres["method"] == method) & (mres["arm"] == arm) & (mres["order"] == order)]
+            if v.empty:
+                ax.set_axis_off()
+                continue
+            both = pd.concat([v.assign(method="model"), ref.assign(method="additive")])
+            adv = stats.advantage(both, "mse_20deg", "model").dropna()
+            d = pd.concat([adv.rename("adv"), e.rename("eta")], axis=1).dropna()
+            ax.scatter(d["eta"], d["adv"], s=9, color=ACCENT, alpha=0.7, lw=0)
+            ax.axhline(0, color=GREY, lw=0.8)
+            ax.set_title(f"{MODEL_LABEL.get(m, m)}\n{title}" if j == 0 else f"\n{title}", fontsize=8)
+            if i == len(models) - 1:
+                ax.set_xlabel("eta, cell half 1")
+            if j == 0:
+                ax.set_ylabel("advantage over addition\n(MSE, top-20 DEGs)")
+    fig.tight_layout()
+    _save(fig, out / "fig4_advantage_vs_eta")
+
+
 def _save(fig, stem: Path):
     for ext in ("png", "pdf"):
         fig.savefig(f"{stem}.{ext}", bbox_inches="tight")
@@ -146,6 +188,7 @@ def main():
     fig_eta(eta, out)
     fig_hierarchy(res, out, args.n_boot)
     fig_additive_vs_eta(res, eta, out)
+    fig_advantage_vs_eta(res, eta, out)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Tasks, step by step: rollout and scGPT
 
-Post-midterm work, from the Nov 15 checkpoint to the final report. Steps 1–9 run on the GPU machine (the oc3 H100 environment used for GEARS). Run every command from the repo root, in order, and stop at any check that fails. Background and design rules: [README](../README.md) and [RUNBOOK](RUNBOOK.md). The midterm tasks (setup, baselines, figures, GEARS training, joint predictions, GEARS round-trip check) are done and recorded in the README log.
+Post-midterm work, from the Nov 15 checkpoint to the final report. Steps 1–12 run on the GPU machine (the oc3 H100 environment used for GEARS). Run every command from the repo root, in order, and stop at any check that fails. Background and design rules: [README](../README.md) and [RUNBOOK](RUNBOOK.md). The midterm tasks (setup, baselines, figures, GEARS training, joint predictions, GEARS round-trip check) are done and recorded in the README log.
 
 `run_model.py` now also records three things per pair (definitions in `src/rolloutprobe/pair_eval.py`), so the GEARS rerun in step 1 and the first scGPT run in step 8 produce them in the same pass:
 
@@ -17,13 +17,20 @@ There are about 1–2 days of H100 hours, spread across sessions. The plan below
 | GEARS full rollout (step 1) | under 1 h | 2 | 1–2 h |
 | scGPT fine-tune (step 6), at most 15 epochs of about 1,630 steps | 1–2 h | 3 training seeds | 3–6 h |
 | scGPT `run_model.py`, one split seed: 131 pairs × about 3,000 cell predictions on all 5,045 genes | 20–60 min | 3 training seeds × 5 split seeds | 5–15 h |
+| Stability and drift (step 10), scGPT and GEARS | under 15 min | 2 models | under 0.5 h |
+| Part B, latent additivity (step 11): about 237 conditions × 2 halves × up to 300 cells | under 1 h | 1 | under 1 h |
+| Part C, only if Part B is favourable (step 12): one fine-tune plus 5 split seeds | 3–7 h | 1 | 3–7 h |
 
 Two additions use the spare hours, and neither changes the design:
 
 1. **Three scGPT fine-tuning runs instead of one** (training seeds 1, 2, 3). A2 and A3 come from a single trained network. Without replicate runs, there is no way to tell a property of scGPT on Norman apart from the outcome of one training run. A second and third run are needed whatever A2 shows: a null result needs replication as much as a positive one.
+   - **Caveat:** the seed changes both the training run (initialisation, batch order) and which 10 singles are held out for validation. If the runs disagree, the two causes cannot be separated, so report the disagreement without attributing it to initialisation. For A2 this is unlikely to matter: whether the output depends on the input is structural, and ten validation singles should not move it.
 2. **All 5 split seeds for every scGPT run**, by default rather than only when time allows. This puts scGPT on the same footing as the baselines and GEARS.
 
-If timings come out far above these estimates, keep training seed 1 on all 5 split seeds, and run seeds 2 and 3 on split seed 0 only. Report that choice.
+**The inference estimate is the uncertain line.** Prediction reads all 5,045 genes while training reads 1,536. Attention cost grows with the square of sequence length, so a prediction costs about 11× a training cell in attention. The estimate assumes PyTorch's own fused attention kernel handles this in fp16; it could fall back to the plain one, since flash-attn is not installed.
+- **Get an early timing signal from step 7.** The round-trip check predicts on about 1.7% of a split seed's cells, so its run time × 60 approximates one split seed. Report it. If it implies more than 2 hours per split seed, say so before step 8.
+
+**If time runs short, cut split seeds, not cells.** Lowering `--max-cells` looks like free savings, but `sens_null_rel` measures exactly the noise from sampling different cells. Fewer cells raise the A2 null floor, which makes the gate less able to detect a real effect. The fallback is: training seed 1 on all 5 split seeds, and training seeds 2 and 3 on split seed 0 only. Report that choice.
 
 ## How to report results
 
@@ -39,7 +46,7 @@ The study's value is that each claim is grounded. For every result:
 - **Report negative and null results plainly.** "No, and here is the mechanism" is the expected outcome of this project.
 
 > [!WARNING]
-> **Review the code before running anything (step 0).** `scripts/train_scgpt.py`, `src/rolloutprobe/models/scgpt_adapter.py`, `src/rolloutprobe/pair_eval.py` and `scripts/analyze_rollout.py` are new. The scGPT code was written against scGPT's API on a machine without torch or a GPU, so it has **never been executed**. Only its plumbing is tested, with a stand-in model. If you are an agent running this file: read every file listed in step 0 against the installed `scgpt` source before the first GPU run. Assume something was missed. If you find a bug, fix it in its own commit on your branch and say what you changed in the report. Never change the experimental design (split, validation singles, seeds, metrics, gate threshold) to make a step pass.
+> **Review the code before running anything (step 0).** `scripts/train_scgpt.py`, `src/rolloutprobe/models/scgpt_adapter.py`, `src/rolloutprobe/pair_eval.py`, `scripts/analyze_rollout.py` and the step 10–12 code (listed in step 0) are new. The scGPT code was written against scGPT's API on a machine without the `scgpt` package or a GPU, so it has **never run with the real scGPT model**. Only its plumbing is tested, with a stand-in network. If you are an agent running this file: read every file listed in step 0 against the installed `scgpt` source before the first GPU run. Assume something was missed. If you find a bug, fix it in its own commit on your branch and say what you changed in the report. Never change the experimental design (split, validation singles, seeds, metrics, gate threshold) to make a step pass.
 
 ## Rules
 
@@ -59,7 +66,7 @@ If any of these is missing, stop and report. Do not retrain GEARS without asking
 
 ## 0. Review the new code (before any GPU run)
 
-Files: `src/rolloutprobe/models/scgpt_adapter.py`, `scripts/train_scgpt.py`, `src/rolloutprobe/pair_eval.py`, `scripts/analyze_rollout.py`, and the small `scgpt` additions to `scripts/run_model.py`, `scripts/roundtrip_check.py` and `src/rolloutprobe/wrapper.py`.
+Files: `src/rolloutprobe/models/scgpt_adapter.py`, `scripts/train_scgpt.py`, `src/rolloutprobe/pair_eval.py`, `scripts/analyze_rollout.py`, and the small `scgpt` additions to `scripts/run_model.py`, `scripts/roundtrip_check.py` and `src/rolloutprobe/wrapper.py`. For steps 10–12: `src/rolloutprobe/latent.py`, `aux_batches.py`, `stability.py`, `discriminator.py`, `scripts/latent_additivity.py`, `scripts/stability.py`, `scripts/drift_discriminator.py` and figure 4 in `scripts/make_figures.py`.
 
 Check these against the installed package (after step 2), mainly `scgpt/model/generation_model.py` and `scgpt/tokenizer/gene_tokenizer.py`:
 
@@ -69,6 +76,8 @@ Check these against the installed package (after step 2), mainly `scgpt/model/ge
 - [ ] `GeneVocab.from_file`, `append_token`, `set_default_index`, `in` and `[]` exist as used in `load_vocab()`.
 - [ ] The checkpoint's `args.json` has the keys `read_config()` reads (`embsize`, `nheads`, `d_hid`, `nlayers`, `n_layers_cls`).
 - [ ] `load_weights()` renames flash-attention keys (`Wqkv.*` → `in_proj_*`) because we run without flash-attn. Compare with `scgpt/utils/util.py` `load_pretrained`. Training must print a nonzero count for each of `encoder`, `value_encoder` and `transformer`, otherwise the model is not starting from pretrained weights.
+- [ ] `ScGPTPredictor.embed_means` (Part B) hooks `model.transformer_encoder` and reads its first input as the summed embedding (gene + value + flag) and its output as the last layer's states, each (batch, genes, d). Check this against `TransformerGenerator._encode`. If `_encode` normalises or transforms the sum before the encoder, the "input" view is that transformed tensor; say so in the report.
+- [ ] Part C in `train_scgpt.py` (only runs with `--w-state` or `--w-saturation` above 0): auxiliary rows come only from training singles (never validation singles or doubles), and the main loss is unchanged when both weights are 0.
 - [ ] Training matches the scGPT perturbation tutorial: input is a random control cell, target is a perturbed cell, flags mark the target's genes, and the loss is MSE over the selected genes. Differences that are deliberate: our own data loading (not GEARS's dataloader), our strict split, and always keeping flagged genes in the gene subset.
 
 ## 1. Full GEARS rollout (`doubletake` env)
@@ -90,7 +99,7 @@ This overwrites `results/model_gears_*.csv` with joint + rollout rows (the joint
 - If the carried order gap is not near 0, stop and report: it would contradict the residual structure the round-trip check found.
 - **A1–A3 for GEARS** (the `analyze_rollout.py` printout):
   - **A2, code check.** Prediction: `sens_rel` below 1e-4 and `sens_corr` = 1.000, because GEARS's predicted shift does not read the input cell. Anything else means a bug in the new code, or that GEARS reads its input after all. Stop and report either way.
-  - **A3.** Prediction: the carried rollout and measured-input carried rollout are exactly 0 by construction. The joint prediction *can* be positive, because the GO graph allows g(A,B) ≠ g(A) + g(B). If joint is positive and carried is 0, the finding is: GEARS has some interaction knowledge, but its rollout cannot carry it. Report joint's value next to the replicate correlation and the noiseless ceiling, for example "0.15 of an achievable ~0.6".
+  - **A3.** Prediction: the carried rollout and measured-input carried rollout are exactly 0 by construction. The joint prediction *can* be positive, because the GO graph allows g(A,B) ≠ g(A) + g(B). If joint is positive and carried is 0, the finding is: GEARS has some interaction knowledge, but its rollout cannot carry it. Report joint's value next to the replicate correlation R and the noiseless ceiling √R, as in "joint X, replicate R, ceiling √R". The ceiling is √R, not R. For example, R = 0.6 gives a ceiling of about 0.77.
   - **Singles fit:** in-sample, so expect high values. If it is low, the implied interactions are contaminated by single-prediction error; say so.
 
 ## 2. scGPT environment (new env, GPU machine)
@@ -129,7 +138,7 @@ ls models/scgpt_human
 pytest -q
 ```
 
-- **Check:** `15 passed`. That is 12 CPU tests plus 3 scGPT adapter tests, which only run where torch is installed. The CPU env without torch shows `12 passed, 1 skipped`.
+- **Check:** `25 passed`. That is 21 CPU tests plus 4 scGPT adapter tests, which only run where torch is installed. The CPU env without torch shows `21 passed, 1 skipped`.
 
 ## 5. Smoke test (a few minutes)
 
@@ -172,6 +181,8 @@ python scripts/roundtrip_check.py --model scgpt --model-dir models/scgpt_strict_
 
 **This no longer decides whether scGPT continues; always go on to step 8.** It passes real A-cells through with *no* perturbation flag. scGPT was trained so that no flags means "output a control cell": that is literally its control condition. So scGPT can fail this check because of its training objective alone, while still letting the input state change a *flagged* perturbation. The check mixes up "ignores its input" (GEARS) with "returns to control when unflagged" (scGPT), and those mean opposite things for composition. That is failure type 3, an unfair test. A2 in step 8 asks the right question.
 
+**Time this run** (`time python ...`). It is the early estimate of step 8's cost (see GPU budget).
+
 It is still the right diagnostic for drift on generated input. The verdict uses correlation on raw expression (> 0.95), which GEARS passed trivially (0.999) because mean expression levels dominate it. Report every column; the informative ones are `passthrough_real_delta_r`, `passthrough_generated_delta_r` and `saturation_ratio`. Do not change code or thresholds.
 
 ## 8. scGPT joint and rollout predictions
@@ -213,13 +224,13 @@ python scripts/make_figures.py
 
 - The first command overwrites the seed-0-only `results/model_scgpt_strict.csv`.
 - Each tag writes its own file and gets its own block in the `analyze_rollout.py` printout.
-- For A2 and A3, report whether the three training seeds agree. Agreement means the CI of `sens_rel_minus_null` points the same way in all three, and the A3 values sit in the same range relative to the ceiling. If they disagree, that is the result: the property depends on the training run, not on scGPT. Report it as such, and do not pick one run.
+- For A2 and A3, report whether the three training seeds agree. Agreement means the CI of `sens_rel_minus_null` points the same way in all three, and the A3 values sit in the same range relative to the ceiling. If they disagree, that is the result: the property depends on the training run, not on scGPT. Report it as such, and do not pick one run. Training run and validation singles change together, so do not attribute a disagreement to initialisation alone.
 
 ## 9. Record and push
 
 1. In the README:
    - Tick finished checklist items, with initials and date
-   - Add a Log line with the key numbers: carried vs restated advantage for GEARS, the scGPT gate verdict and delta r values, and scGPT joint and carried advantage with share of pairs better
+   - Add a Log line with the key numbers: carried vs restated advantage for GEARS, the scGPT A2 result (`sens_rel_minus_null` with CI, per training seed), the scGPT round-trip diagnostic verdict and delta r values, and scGPT joint and carried advantage with share of pairs better
    - Update "Last updated"
 2. Commit and push:
    ```bash
@@ -242,27 +253,89 @@ Report in this order:
 - Git: branch, commit hash, push result
 - Anything skipped or failed, and why
 
-## Not written yet (development, after Nov 15)
+## 10. Stability and drift (after the step 8 report; minutes per model)
 
-These have no code yet. Each needs its own branch and a test on synthetic data before it runs on real data. Order: Part B only after A2 is reported, then Part C only if Part B is favourable, then CPA if at all.
+These are consistency checks: Norman cannot say what a second dose of guide A should do. Use the `scgpt` env for scGPT and `doubletake` for GEARS.
 
-- **Part B: where is the interaction lost?** It is cheap and needs no training, and it decides whether Part C is worth attempting. Question: is the interaction represented anywhere inside the model?
-  - **Method:** embed real cells from ctrl, A, B and AB, with no perturbation flags so the embedding is the input state. Test whether the latent is additive: z_AB − z_ctrl against (z_A − z_ctrl) + (z_B − z_ctrl). Compare the relative residual ‖r‖ / ‖Δ_AB‖ in latent space with the same quantity in gene space, so the comparison is scale-free. Use embeddings from half 2, and half 1 vs half 2 for the noise ceiling.
-  - **Decided in advance:**
-    - Latent residual much smaller than in gene space: the encoder discards the interaction, so no latent-space method can recover it, and Part C is not worth it.
-    - Comparable: the interaction survives into the latent, so the perturbation head or decoder fails to use it, and Part C is worth attempting.
-    - Larger: something is wrong; investigate first.
-  - **scGPT caveat:** the fine-tuned perturbation model (`TransformerGenerator`) has no CLS token in its inputs (gene tokens only), so "the CLS embedding" does not exist for it. Its decoder reads the per-gene token states of the last transformer layer. Use those, flattened, as the latent, and mean-pooled as a secondary view. The pretrained whole-human model does have a CLS token, but it is a different network from the one making the predictions.
-  - **CPA:** expect "much smaller", because its basal encoder is trained adversarially so that perturbation identity cannot be recovered from it. That is a predicted failure with a nameable cause.
-- **Part C: can a model be made to carry state?** Only if Part B says yes, and only after A2, A3 and B are reported. An architecture change alone cannot work: Norman gives no gradient for state-conditioning, since every training input is a control cell, so a new pathway would be ignored. It needs an architecture change *plus* a training signal from singles only.
-  - **Architecture:** for GEARS, out = x + g(pert, x), meaning the perturbation module also reads an embedding of the input. For scGPT nothing changes; it already reads its input.
-  - **Two auxiliary losses on real cells:**
-    - State preservation: predict(x_A, ∅) ≈ x_A. This contradicts scGPT's current "no flags → control" behaviour, which is the point.
-    - Saturation: predict(x_A, (A,)) ≈ x_A, since A-cells already have guide A active.
-  - **Expected best case:** rollout stops being a fixed sum and approaches the joint prediction. No singles-only signal can teach how A modulates B. A failure is still a strong result, because it isolates the limitation to the training distribution.
-- **Not building: discrete or quantised latent "state islands".** Learning transitions between states needs (state_i, action) → state_j across many starting states. Norman only has (control, action) → state_j, which is one row of that table. A discrete latent changes the representation without adding the missing observations.
-- **CPA** (after Part C, if at all): `cpa-tools`, strict split, behind `predict()`. Interesting as a contrast because it composes in latent space by construction.
+```bash
+python scripts/stability.py          --model scgpt --model-dir models/scgpt_strict_s1   --tag scgpt_strict
+python scripts/drift_discriminator.py --model scgpt --model-dir models/scgpt_strict_s1   --tag scgpt_strict
+python scripts/stability.py          --model gears --model-dir models/gears_strict_s1   --tag gears_strict
+python scripts/drift_discriminator.py --model gears --model-dir models/gears_strict_s1   --tag gears_strict
+```
 
-- **Stability experiment** (cut list, third): repeat the same perturbation for 1 to 10 steps from control cells, `x_{k+1} = predict(x_k, (A,))`, for the 5 largest singles. Report the saturation ratio per step, and the distance of the step-k pseudobulk from the nearest real condition's pseudobulk. Builds on `rollout.saturation_ratio`; the new script would be `scripts/stability.py`.
-- **Discriminator drift metric** (cut list, first to go): train a classifier to tell real cells from predicted cells after k steps; accuracy near 0.5 means no drift. Skip it unless everything above is done.
-- **Final report** (due Dec 3): copy `report/midterm/` to `report/final/`. Add the rollout results (from `results/rollout_analysis.csv`) to Experiments and Analysis, plus a Conclusion and Team Contributions, which the final rubric requires. The figure of advantage against eta per variant is still to be added to `scripts/make_figures.py`.
+- **Stability question:** what does a repeated perturbation do? `step_ratio` near 0 after step 1 means it saturates, which is the biologically plausible behaviour. A constant 1 means it re-adds a fixed vector.
+  - **Prediction for GEARS:** exactly 1 at every step, by construction. Anything else is a bug.
+  - **scGPT:** unknown. Also report `dist_target`, the distance from the measured A profile in units of ‖A − ctrl‖ (step 1 should be well below 1), and whether `nearest` stays on A or drifts to other conditions.
+- **Drift question:** do predicted cells look like real cells? Accuracy 0.5 means indistinguishable. Always report it next to `floor` (real vs real, half 1 vs half 2) and `scale` (control vs target).
+  - Accuracy near `scale` means the predictions are as distinguishable from the target as control cells are.
+  - **Expectation for GEARS:** its predicted cells are control cells plus one fixed vector each, so they keep the control cells' spread. Its accuracy should mostly reflect the error in the mean.
+  - **scGPT** outputs may be smoother than real cells, which a classifier detects even when the mean is right. If so, say that this measures realism of single cells, not the composition question.
+
+## 11. Part B: where is the interaction lost? (after A2 is reported; under 1 GPU hour)
+
+Question: is the measured interaction still present inside scGPT? Part B decides whether Part C is worth its GPU time.
+
+```bash
+python scripts/latent_additivity.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
+```
+
+- **What it does:** embeds real cells of ctrl, A, B and AB (half 1 and half 2, up to 300 per condition and half) with no perturbation flags, for all 131 test pairs.
+- **The quantity:** the noise-corrected share of the double's shift that is non-additive (`rel_cross`, defined in `src/rolloutprobe/latent.py`). It is computed per view and compared with gene space on the same cells.
+- **Views:**
+  - `genes`
+  - `input_tokens` and `last_tokens`: per-gene states entering and leaving the transformer, flattened
+  - `input_pooled` and `last_pooled`: averaged over genes
+- **Disk use:** embeddings are cached in `models/latent_cache/` (ignored by git), about 20 MB per condition and half, roughly 10 GB in all. A rerun resumes from the cache. Delete the cache after the results are committed.
+- **Output:** `results/latent_scgpt_strict.csv` (summaries) and `results/latent_scgpt_strict_pairs.csv`.
+- **GEARS is not run:** its input cell never enters a latent (out = x + g(pert)), so there is nothing to probe. Say so in the report.
+
+**Decision.** Read `ratio_to_genes` for `last_tokens`, with its bootstrap CI over pairs. The thresholds are fixed before the run (Shreyan: confirm or change them before Datta runs this step):
+
+| Result | Meaning | Next |
+|---|---|---|
+| CI upper bound below 0.5 | The encoder discards most of the interaction, so no latent-space method can recover it | Skip Part C |
+| CI lower bound above 1.5 | Something is wrong | Investigate first |
+| Otherwise (comparable) | The interaction survives into the latent, so the perturbation path fails to use it | Part C is worth attempting |
+
+**Read alongside: `ratio_to_input` for `last_tokens`.** Per-gene token states carry each gene's own input value through the transformer's residual connections. So `last_tokens` can look "comparable" to gene space simply because the input is copied through, even if no layer uses the interaction. `ratio_to_input` compares the last layer with what entered the transformer.
+- Near 1: the transformer passes the interaction through.
+- Well below 1: the transformer shrinks it.
+
+The pooled views have no per-gene copy, so they are the less trivial test. Report all four views.
+
+## 12. Part C: can scGPT be made to carry state? (only if step 11 says "comparable")
+
+An architecture change alone cannot work. Norman gives no gradient for state-conditioning, because every training input is a control cell, so a new pathway would be ignored. scGPT already reads its input, so Part C needs no architecture change, only a training signal from singles. `train_scgpt.py` has two auxiliary losses, off by default (`src/rolloutprobe/aux_batches.py`):
+- **State:** input a real A cell with no flag; the target is another A cell. This contradicts scGPT's current "no flags → control" behaviour, which is the point.
+- **Saturation:** input a real A cell with A flagged; the target is another A cell, since A cells already have guide A active.
+
+Both use training singles only, so the strict split holds.
+
+```bash
+python scripts/train_scgpt.py --pretrained models/scgpt_human --seed 1 --name scgpt_carry --w-state 1 --w-saturation 1
+python scripts/run_model.py --model scgpt --model-dir models/scgpt_carry_s1 --tag scgpt_carry
+python scripts/stability.py --model scgpt --model-dir models/scgpt_carry_s1 --tag scgpt_carry
+python scripts/analyze_rollout.py
+python scripts/make_figures.py
+```
+
+- **Weights:** 1 and 1 is the starting point and is not tuned. Do not tune them on the test doubles. If the run is unstable, report it; do not search over weights.
+- **Check:** the training log prints the main loss and each auxiliary loss. The main validation Pearson delta should stay close to `scgpt_strict_s1`'s. If it drops a lot, the auxiliary losses are fighting the main task; report it.
+- **Question:** does carrying state make rollout compose? Compare `scgpt_carry` with `scgpt_strict` on:
+  - A2 (`sens_rel_minus_null` should rise)
+  - A3 for `rollout_carried_ab` and `rollout_measured_carried_ab`, against the replicate and the ceiling
+  - carried-rollout advantage over addition
+  - stability `step_ratio`, which should fall toward 0 if saturation was learned
+- **Expected best case:** rollout stops being a fixed sum and moves toward the joint prediction. No singles-only signal can teach how A modulates B, so A3 may stay near 0 even if A2 rises. That outcome isolates the limitation to the training data (failure type 2), and is a strong result.
+
+## Report back for steps 10–12
+
+The same format as above: for each step, the question, the prediction written here, the numbers with their zero, floor or ceiling, and which failure type they support. Include the Part B decision row and which threshold decided it.
+
+## Not written (and why)
+
+- **GEARS with state input (Part C for GEARS):** out = x + g(pert, x). It needs a fork of cell-gears' `GEARS_Model.forward`, so that the perturbation module also reads an embedding of the input. It also needs a training loop that feeds real single-perturbed cells as inputs, which GEARS's dataloader cannot do (it pairs control inputs with perturbed targets itself). This was not written because neither could be checked against the cell-gears source here. Only attempt it if scGPT Part C shows that state-carrying helps; otherwise there is no reason to expect it to.
+- **CPA** (after Part C, if at all): `cpa-tools`, strict split, behind `predict()`. It is interesting as a contrast because it composes in latent space by construction. Part B prediction for CPA: the latent residual is much smaller than in gene space, because its basal encoder is trained adversarially so that perturbation identity cannot be recovered from it. Not written: it needs a new environment (scvi-tools), and its API could not be checked here.
+- **Discrete or quantised latent "state islands":** deliberately not built. Learning transitions between states needs (state_i, action) → state_j across many starting states. Norman only has (control, action) → state_j, which is one row of that table. A discrete latent changes the representation without adding the missing observations.
+- **Final report** (due Dec 3): copy `report/midterm/` to `report/final/`. Add the rollout results (from `results/rollout_analysis.csv`, figure 4 `figures/fig4_advantage_vs_eta`) to Experiments and Analysis, plus a Conclusion and Team Contributions, which the final rubric requires.

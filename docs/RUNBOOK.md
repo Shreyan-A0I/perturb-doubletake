@@ -82,18 +82,27 @@ src/rolloutprobe/
   wrapper.py                predict(X, pert) -> X interface; oracle test model
   rollout.py                joint, rollout arms, measured-input arm, saturation, round-trip
   pair_eval.py              per-pair evaluation: predictions, singles, input sensitivity, interaction recovery
+  latent.py                 Part B: latent additivity (cross-half relative residual per embedding view)
+  aux_batches.py            Part C: state / saturation training rows from real single-perturbed cells
+  stability.py              repeated perturbation trajectories, step ratios, nearest real condition
+  discriminator.py          real vs predicted cells: PCA + logistic regression, cross-validated accuracy
   models/gears_adapter.py   GEARS behind predict()
   models/scgpt_adapter.py   scGPT behind predict(); model/vocab/weight helpers for training
 scripts/
   make_synthetic.py         synthetic Norman-shaped data with planted interactions
   run_baselines.py          midterm items 1-2
   train_gears.py            GEARS, standard or strict split
-  train_scgpt.py            fine-tune pretrained scGPT, strict split
+  train_scgpt.py            fine-tune pretrained scGPT, strict split (Part C losses behind flags)
   run_model.py              joint + rollout for any registered model
   roundtrip_check.py        gate 1
   analyze_rollout.py        advantage over addition vs eta, tertiles, order and arm gaps
-  make_figures.py           fig 1 eta reliability, fig 2 hierarchy, fig 3 additive error vs eta
+  latent_additivity.py      Part B: interaction in gene space vs inside scGPT
+  stability.py              repeat one perturbation 1..K times
+  drift_discriminator.py    can a classifier tell predicted cells from real ones?
+  make_figures.py           fig 1 eta reliability, fig 2 hierarchy, fig 3 additive error vs eta,
+                            fig 4 advantage over addition vs eta per model and variant
 tests/test_pipeline.py
+tests/test_new_experiments.py Part B, Part C rows, stability, discriminator on toy inputs
 tests/test_interaction.py     input sensitivity and interaction recovery on toy models
 tests/test_scgpt_adapter.py   scGPT adapter plumbing with a stand-in model (needs torch)
 ```
@@ -113,9 +122,12 @@ that caught the input-sampling bias the anchoring rule fixes.
 none ran here (no GPU, no data access). Run `roundtrip_check.py` before trusting
 any GEARS number. (Since run on real data: see the README log.)
 
-**Written against the scGPT API, not executed:** `models/scgpt_adapter.py` and
-`scripts/train_scgpt.py`. No torch on the machine they were written on. See
-[TASKS.md](TASKS.md) step 0 for what to check against the installed `scgpt`.
+**Written against the scGPT API, not executed:** `models/scgpt_adapter.py` (including
+`embed_means` for Part B) and `scripts/train_scgpt.py` (including the Part C losses).
+Their plumbing is tested with a stand-in network under torch; the real scGPT model
+has never been loaded. See [TASKS.md](TASKS.md) step 0 for what to check against the
+installed `scgpt`. `latent_additivity.py`, `stability.py` and `drift_discriminator.py`
+are tested end to end on synthetic data with the oracle model.
 
 **Why GEARS needs a custom adapter at all:** `GEARS.predict()` accepts only a
 perturbation list and samples its own control cells internally. It has no way to
