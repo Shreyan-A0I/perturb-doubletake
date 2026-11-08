@@ -8,6 +8,23 @@ Post-midterm work, from the Nov 15 checkpoint to the final report. Steps 1–9 r
 - **A2. Input sensitivity: does the predicted effect of B depend on which cell it starts from?** It compares the predicted shift of B from real A-cells with the shift from control cells (`sens_rel`), against the same comparison between two control samples (`sens_null_rel`, what cell sampling alone produces). **A2 is the gate for whether composition can be tested at all** (step 8).
 - **A3. Interaction recovery: does the model get the non-additive part right?** It is the Pearson correlation between the interaction a prediction implies, D_pred(AB) − D_pred(A) − D_pred(B), and the measured half-2 interaction, on the top-20 DEGs and on all genes. Its zero is the additive baseline, which is 0 by construction. Its references are the half-1 vs half-2 replicate correlation and the noiseless ceiling, about √replicate.
 
+## GPU budget
+
+There are about 1–2 days of H100 hours, spread across sessions. The plan below uses roughly 10–25 of them. These timings are estimates from compute counts, not measurements. Replace them with the real numbers from step 5 and from seed 0 in step 8.
+
+| Run | Estimate per run | Runs | Total |
+|---|---|---|---|
+| GEARS full rollout (step 1) | under 1 h | 2 | 1–2 h |
+| scGPT fine-tune (step 6), at most 15 epochs of about 1,630 steps | 1–2 h | 3 training seeds | 3–6 h |
+| scGPT `run_model.py`, one split seed: 131 pairs × about 3,000 cell predictions on all 5,045 genes | 20–60 min | 3 training seeds × 5 split seeds | 5–15 h |
+
+Two additions use the spare hours, and neither changes the design:
+
+1. **Three scGPT fine-tuning runs instead of one** (training seeds 1, 2, 3). A2 and A3 come from a single trained network. Without replicate runs, there is no way to tell a property of scGPT on Norman apart from the outcome of one training run. A second and third run are needed whatever A2 shows: a null result needs replication as much as a positive one.
+2. **All 5 split seeds for every scGPT run**, by default rather than only when time allows. This puts scGPT on the same footing as the baselines and GEARS.
+
+If timings come out far above these estimates, keep training seed 1 on all 5 split seeds, and run seeds 2 and 3 on split seed 0 only. Report that choice.
+
 ## How to report results
 
 The study's value is that each claim is grounded. For every result:
@@ -141,7 +158,11 @@ Defaults follow the scGPT tutorial: 15 epochs, lr 1e-4 decaying by 0.9 per epoch
 - **Check:**
   - It ends with `saved models/scgpt_strict_s1`, and that folder contains `best_model.pt`, `args.json`, `vocab.json`, `rolloutprobe_split.json` and `train_log.csv`.
   - The validation Pearson delta rises over the first epochs. For scale, GEARS's joint prediction on the test doubles reached 0.67.
-- Copy `train_log.csv` into `results/scgpt_train_log.csv` so it gets committed.
+- Copy `train_log.csv` into `results/scgpt_train_log_s1.csv` so it gets committed.
+
+**Training seeds 2 and 3.** Train these after seed 1, using the same command with `--seed 2` and `--seed 3`. They write `models/scgpt_strict_s2` and `models/scgpt_strict_s3`, and their logs go to `results/scgpt_train_log_s2.csv` and `results/scgpt_train_log_s3.csv`. They may train while step 8's report is waiting for a decision, because both A2 outcomes need them.
+- **The seed also changes the 10 validation singles.** `gears_custom_split` draws them with that seed, but always from singles that appear in no double. The training singles still include every gene in a test double, and the 131 test doubles stay the same. This is intended: the replicate varies the training run, not the test.
+- Each run must pass the same checks as seed 1, including the `95 train singles` line.
 
 ## 7. Round-trip check on scGPT (diagnostic, not the gate)
 
@@ -178,7 +199,21 @@ python scripts/make_figures.py
   - **No excess** (CI includes 0, or the excess is negligible next to `sens_null_rel`): no tested model's prediction depends on cell state. GEARS fails for architectural reasons; scGPT fails despite pretraining, which points at the training data (type 2). The study's conclusion is then clean. Do not try to rescue it; write it up.
   - **Clear excess:** composition is testable for scGPT. A3 then says whether that state dependence carries the *right* interaction. Note that `rollout_measured_carried_ab` in A3 is exactly "the effect of B on real A-cells minus its effect on control cells", correlated with the measured interaction, so A2 and A3 meet there.
 - **A3 question:** does any scGPT prediction recover the measured interaction? Report each variant next to its zero, the replicate correlation and the noiseless ceiling.
-- Also report seed 0's run time. Shreyan decides whether to run all 5 seeds (rerun without `--seeds 0`, which overwrites the file; worth it if one seed took under about 3 hours) and whether to start Part B. `analyze_rollout.py` compares against addition on the same seeds, so a 1-seed run is still a fair comparison.
+- Also report seed 0's run time. `analyze_rollout.py` compares against addition on the same seeds, so a 1-seed run is still a fair comparison. Shreyan decides whether to start Part B.
+
+**After the report: all split seeds and all training seeds.** Unless Shreyan says otherwise, run all 5 split seeds for each training seed:
+
+```bash
+python scripts/run_model.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
+python scripts/run_model.py --model scgpt --model-dir models/scgpt_strict_s2 --tag scgpt_strict_s2
+python scripts/run_model.py --model scgpt --model-dir models/scgpt_strict_s3 --tag scgpt_strict_s3
+python scripts/analyze_rollout.py
+python scripts/make_figures.py
+```
+
+- The first command overwrites the seed-0-only `results/model_scgpt_strict.csv`.
+- Each tag writes its own file and gets its own block in the `analyze_rollout.py` printout.
+- For A2 and A3, report whether the three training seeds agree. Agreement means the CI of `sens_rel_minus_null` points the same way in all three, and the A3 values sit in the same range relative to the ceiling. If they disagree, that is the result: the property depends on the training run, not on scGPT. Report it as such, and do not pick one run.
 
 ## 9. Record and push
 
@@ -203,6 +238,7 @@ Report in this order:
 - Envs and tests: versions printed in step 2, the `pytest -q` result
 - Steps 1, 5–8: the printed output (split line, vocab coverage, pretrained tensor counts, the per-epoch log, the round-trip table, per-seed timing, the full `analyze_rollout.py` printout)
 - For A2 and A3 (GEARS and scGPT): the question, the prediction written above, the number with its zero and its ceiling, and which failure type (architecture, data, unfair test) it supports
+- Whether the three scGPT training seeds agree on A2 and A3, and the best validation Pearson delta of each
 - Git: branch, commit hash, push result
 - Anything skipped or failed, and why
 
