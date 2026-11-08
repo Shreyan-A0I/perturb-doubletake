@@ -100,7 +100,7 @@ This overwrites `results/model_gears_*.csv` with joint + rollout rows (the joint
 - If the carried order gap is not near 0, stop and report: it would contradict the residual structure the round-trip check found.
 - **A1–A3 for GEARS** (the `analyze_rollout.py` printout):
   - **A2, code check.** Prediction: `sens_rel` below 1e-4 and `sens_corr` = 1.000, because GEARS's predicted shift does not read the input cell. Anything else means a bug in the new code, or that GEARS reads its input after all. Stop and report either way.
-  - **A3.** Prediction: the carried rollout and measured-input carried rollout are exactly 0 by construction. The joint prediction *can* be positive, because the GO graph allows g(A,B) ≠ g(A) + g(B). If joint is positive and carried is 0, the finding is: GEARS has some interaction knowledge, but its rollout cannot carry it. Report joint's value next to the replicate correlation R and the noiseless ceiling √R, as in "joint X, replicate R, ceiling √R". The ceiling is √R, not R. For example, R = 0.6 gives a ceiling of about 0.77.
+  - **A3.** Prediction: the carried rollout and measured-input carried rollout are exactly 0 by construction. The joint prediction *can* be positive, because the summed perturbation embeddings pass through `pert_fuse`, a nonlinear MLP, and a nonlinear decoder (GEARS `model.py`, commit `f374e43`, lines 168–206), so g(A,B) ≠ g(A) + g(B) is possible. If joint is positive and carried is 0, the finding is: GEARS has some interaction knowledge, but its rollout cannot carry it. Report joint's value next to the replicate correlation R and the noiseless ceiling √R, as in "joint X, replicate R, ceiling √R". The ceiling is √R, not R. For example, R = 0.6 gives a ceiling of about 0.77.
   - **Singles fit:** in-sample, so expect high values. If it is low, the implied interactions are contaminated by single-prediction error; say so.
 
 ## 2. scGPT environment (new env, GPU machine)
@@ -250,7 +250,7 @@ So A2 is meaningful for CPA. The adapter docstring (`src/rolloutprobe/models/cpa
 **Decisions recorded in advance** (all in `scripts/train_cpa.py` and written to `rolloutprobe_split.json`):
 - **Counts vs normalised data.** CPA's tutorial trains on raw counts with a negative binomial loss. The GEARS-processed file everything else uses is log-normalized and has no counts layer. CPA is trained with `recon_loss="gauss"` on that log-normalized X (`is_count_data=False`), which CPA supports. This keeps the same cells, the same 5,045 genes and the same expression space as every other model. Fetching Norman counts from elsewhere would need a download over 10 MB and a different gene set, so it was not done.
 - **Strict split.** Training sees control plus the 95 training singles. The 10 held-out singles (same `gears_custom_split` rule and seed: singles in no double) and every double are `ood`, so CPA's training loop never sees them.
-- **CPA's own validation set** (early stopping only). By default this is a random 10% of the training conditions' cells. CPA cannot embed a gene it has never seen, so validating on held-out singles would only measure untrained embeddings. `--valid-mode singles` gives the GEARS/scGPT-style alternative.
+- **CPA's own validation set** (early stopping only). This is a random 10% of the training conditions' cells; the default is decided, so do not change it. CPA learns each perturbation's embedding from scratch, so a held-out single has a randomly initialised embedding, and stopping on it would be stopping on noise. `--valid-mode singles` exists only for reference. **The criterion differs by necessity:** GEARS and scGPT stop on unseen *perturbations*, CPA on unseen *cells*. State this plainly in every report and in the final write-up, and use A1 to check what it bought (C5).
 - **Hyperparameters.** These are CPA's Norman tutorial values, unchanged except `recon_loss`, `seed` (= `--seed`) and dropping the single-valued `cell_type` covariate.
 - **Adapter path.** The adapter calls `module.get_expression`, which is the per-batch call inside `CPA.predict`. It avoids `CPA.predict` itself because scvi-tools registers and keeps every new AnnData, and run_model makes about 6,500 calls per run. `train_cpa.py` checks the two paths agree on real cells and refuses to save a model if they differ.
 
@@ -298,6 +298,7 @@ python scripts/train_cpa.py --seed 1
   - The split line: `95 train singles + ctrl, 10 held-out singles [...], 131 test doubles`, with no double in train or valid (the script asserts this).
   - It ends with `adapter vs CPA.predict on ...: max |diff| = ...` below 1e-4, then `saved models/cpa_strict_s1`. If the diff check fails, the model is not saved; report the number.
 - Copy `models/cpa_strict_s1/history.csv` to `results/cpa_train_history_s1.csv`.
+- In the report, state the early-stopping difference: CPA stopped on held-out cells of training conditions, GEARS and scGPT on held-out singles.
 
 ### C5. Predictions, then CPA's A2, A3 and Part B
 
@@ -320,6 +321,8 @@ python scripts/make_figures.py
   - Expect `rollout_measured_carried_ab` to look like the single B prediction.
   - In that case the implied interaction is about −D_pred(A), not 0. Its A3 can then be nonzero, with either sign, without any composition. Read rollout A3 only together with the order gap and `int_rel`.
 - **Joint.** `predict(x, (A, B))` decodes z_basal + e_A + e_B, which is additive in the latent. The decoder is nonlinear, so the gene-space prediction can be non-additive even though no double was ever trained on. A positive joint A3 would then be decoder nonlinearity that happens to align with the measured interaction. It would not be learned interaction knowledge.
+- **A1, the check on CPA's early stopping.** Compare CPA's in-sample singles fit (`single_fit_in_sample`) with GEARS's and scGPT's, next to each model's joint advantage over addition. If CPA's singles fit is much higher while its double prediction is worse, it over-fit the training perturbations; the cells-based stopping criterion allows that. Say so rather than hiding it.
+- **The GEARS–CPA contrast, for the final report.** Both models build a double from a *sum* of single-perturbation embeddings: GEARS sums them and passes the sum through `pert_fuse` and its decoder; CPA embeds A+B as e_A + e_B and decodes. In both, interaction capacity sits entirely in nonlinear layers after that sum. So both can show a nonzero joint A3 for the same structural reason, while failing rollout for different reasons: **GEARS never reads its input; CPA reads it and strips it.** This is the sentence that justifies CPA being in the study rather than being a third number. Check it against the results before using it. If the joint A3 values or the rollout failures do not match this description, report what they show instead.
 - **A2 and A3 together.** Both metrics are needed to tell leakage from composition. Worth a paragraph in the final report:
 
 | A2 excess over null | A3 (joint or rollout) | Reading |
@@ -338,6 +341,7 @@ python scripts/make_figures.py
 - C4: the split line, the epochs run, and the `public_predict_check` diff
 - The round-trip table
 - For A2, A3 and Part B: the question, the prediction above, the number with its zero, null and ceiling, and the row of the table it falls in
+- A1: CPA's singles fit next to GEARS's and scGPT's, with each model's joint advantage, and whether it points to over-fitting
 - Then the branch and commit
 
 ## 9. Record and push
@@ -450,4 +454,7 @@ The same format as above: for each step, the question, the prediction written he
 
 - **GEARS with state input (Part C for GEARS):** out = x + g(pert, x). It needs a fork of cell-gears' `GEARS_Model.forward`, so that the perturbation module also reads an embedding of the input. It also needs a training loop that feeds real single-perturbed cells as inputs, which GEARS's dataloader cannot do (it pairs control inputs with perturbed targets itself). This was not written because neither could be checked against the cell-gears source here. It is future work for the final report, not a planned result.
 - **Discrete or quantised latent "state islands":** deliberately not built. Learning transitions between states needs (state_i, action) → state_j across many starting states. Norman only has (control, action) → state_j, which is one row of that table. A discrete latent changes the representation without adding the missing observations.
-- **Final report** (due Dec 3): copy `report/midterm/` to `report/final/`. Add the rollout results (from `results/rollout_analysis.csv`, figure 4 `figures/fig4_advantage_vs_eta`) to Experiments and Analysis, plus a Conclusion and Team Contributions, which the final rubric requires.
+- **Final report** (due Dec 3): copy `report/midterm/` to `report/final/`. Add the rollout results (from `results/rollout_analysis.csv`, figure 4 `figures/fig4_advantage_vs_eta`) to Experiments and Analysis, plus a Conclusion and Team Contributions, which the final rubric requires. If CPA ran (step 8b):
+  - **Limitations:** add "CPA was run with a Gaussian likelihood on log-normalised data to match the shared input space, whereas its own tutorial uses raw counts with a negative-binomial likelihood."
+  - **Method:** state that CPA's early stopping uses held-out cells of training conditions, because it cannot embed an unseen perturbation, while GEARS and scGPT stop on held-out singles.
+  - **Analysis:** include the GEARS–CPA contrast from step 8b (C5), if the results bear it out.
