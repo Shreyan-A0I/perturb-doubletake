@@ -18,8 +18,8 @@ There are about 1–2 days of H100 hours, spread across sessions. The plan below
 | scGPT fine-tune (step 6), at most 15 epochs of about 1,630 steps | 1–2 h | 3 training seeds | 3–6 h |
 | scGPT `run_model.py`, one split seed: 131 pairs × about 3,000 cell predictions on all 5,045 genes | 20–60 min | 3 training seeds × 5 split seeds | 5–15 h |
 | Stability and drift (step 10), scGPT and GEARS | under 15 min | 2 models | under 0.5 h |
-| Part B, latent additivity (step 11): about 237 conditions × 2 halves × up to 300 cells | under 1 h | 1 | under 1 h |
-| Part C, only if Part B is favourable (step 12): one fine-tune plus 5 split seeds | 3–7 h | 1 | 3–7 h |
+| Part B diagnostic (step 11): about 237 conditions × 2 halves × up to 300 cells | under 1 h | 1 | under 1 h |
+| Part C (step 12), **not planned by default**: one fine-tune plus 5 split seeds | 3–7 h | 0 or 1 | 0–7 h |
 
 Two additions use the spare hours, and neither changes the design:
 
@@ -210,7 +210,10 @@ python scripts/make_figures.py
   - **No excess** (CI includes 0, or the excess is negligible next to `sens_null_rel`): no tested model's prediction depends on cell state. GEARS fails for architectural reasons; scGPT fails despite pretraining, which points at the training data (type 2). The study's conclusion is then clean. Do not try to rescue it; write it up.
   - **Clear excess:** composition is testable for scGPT. A3 then says whether that state dependence carries the *right* interaction. Note that `rollout_measured_carried_ab` in A3 is exactly "the effect of B on real A-cells minus its effect on control cells", correlated with the measured interaction, so A2 and A3 meet there.
 - **A3 question:** does any scGPT prediction recover the measured interaction? Report each variant next to its zero, the replicate correlation and the noiseless ceiling.
-- Also report seed 0's run time. `analyze_rollout.py` compares against addition on the same seeds, so a 1-seed run is still a fair comparison. Shreyan decides whether to start Part B.
+- **Part C gate (read from the same A3 printout, no extra run):** does scGPT have interaction knowledge that rollout cannot carry? Part C's premise is exactly that, so this decides whether Part C has anything to work with.
+  - **Joint A3 CI above 0 while `rollout_carried_ab` sits near 0:** the joint prediction knows something about the interaction that the rollout path loses. Part C is possible (step 12).
+  - **Joint A3 itself near 0** (CI includes 0): the model has no interaction knowledge, and Part C cannot create any. Its losses teach state preservation and saturation, not how A modulates B. Part C is closed; say so in the report.
+- Also report seed 0's run time. `analyze_rollout.py` compares against addition on the same seeds, so a 1-seed run is still a fair comparison.
 
 **After the report: all split seeds and all training seeds.** Unless Shreyan says otherwise, run all 5 split seeds for each training seed:
 
@@ -272,16 +275,15 @@ python scripts/drift_discriminator.py --model gears --model-dir models/gears_str
   - **Expectation for GEARS:** its predicted cells are control cells plus one fixed vector each, so they keep the control cells' spread. Its accuracy should mostly reflect the error in the mean.
   - **scGPT** outputs may be smoother than real cells, which a classifier detects even when the mean is right. If so, say that this measures realism of single cells, not the composition question.
 
-## 11. Part B: where is the interaction lost? (after A2 is reported; under 1 GPU hour)
+## 11. Part B diagnostic: is the interaction present inside scGPT? (after the step 8 report; under 1 GPU hour)
 
-Question: is the measured interaction still present inside scGPT? Part B decides whether Part C is worth its GPU time.
+**A diagnostic for the write-up, not a gate.** The Part C gate is joint A3 (step 8). For scGPT, Part B's absolute numbers are expected to say little. scGPT's per-gene residual stream is close to lossless by design, so encoding real AB cells reflects the interaction simply because the AB cells' input expression contains it. That does not show that any layer uses it. Part B is sharp only for an architecture with a real bottleneck, such as CPA (see the end of this file).
 
 ```bash
 python scripts/latent_additivity.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
 ```
 
-- **What it does:** embeds real cells of ctrl, A, B and AB (half 1 and half 2, up to 300 per condition and half) with no perturbation flags, for all 131 test pairs.
-- **The quantity:** the noise-corrected share of the double's shift that is non-additive (`rel_cross`, defined in `src/rolloutprobe/latent.py`). It is computed per view and compared with gene space on the same cells.
+- **What it does:** embeds real cells of ctrl, A, B and AB (half 1 and half 2, up to 300 per condition and half) with no perturbation flags, for all 131 test pairs. Definitions are in `src/rolloutprobe/latent.py`.
 - **Views:**
   - `genes`
   - `input_tokens` and `last_tokens`: per-gene states entering and leaving the transformer, flattened
@@ -290,23 +292,23 @@ python scripts/latent_additivity.py --model scgpt --model-dir models/scgpt_stric
 - **Output:** `results/latent_scgpt_strict.csv` (summaries) and `results/latent_scgpt_strict_pairs.csv`.
 - **GEARS is not run:** its input cell never enters a latent (out = x + g(pert)), so there is nothing to probe. Say so in the report.
 
-**Decision.** Read `ratio_to_genes` for `last_tokens`, with its bootstrap CI over pairs. The thresholds are fixed before the run (Shreyan: confirm or change them before Datta runs this step):
+**What to report. There are no invented thresholds; each test has a built-in null.**
+- **`cross_half_signal` per view:** the mean over pairs of (r_1 · r_2) / (d_1 · d_2), with a bootstrap CI and the share of pairs above 0. The halves are independent, so r_1 · r_2 has expectation 0 when a view carries no interaction signal. "CI excludes 0" is the same split-half test that eta uses in gene space.
+- **`ratio_to_input` for `last_tokens` and `last_pooled`:** the last layer against what entered the transformer. **This change across layers is the informative quantity.**
+  - Near 1: the layers pass the interaction through unchanged.
+  - Below 1: the layers shrink it.
+  - It still does not show that the decoder *uses* the interaction; A3 answers that.
+- `ratio_to_genes` and `pooled_rel_cross` are in the CSV for completeness. Do not interpret the absolute ratio to gene space, for the pass-through reason above.
 
-| Result | Meaning | Next |
-|---|---|---|
-| CI upper bound below 0.5 | The encoder discards most of the interaction, so no latent-space method can recover it | Skip Part C |
-| CI lower bound above 1.5 | Something is wrong | Investigate first |
-| Otherwise (comparable) | The interaction survives into the latent, so the perturbation path fails to use it | Part C is worth attempting |
+## 12. Part C: can scGPT be made to carry state? (default: future work)
 
-**Read alongside: `ratio_to_input` for `last_tokens`.** Per-gene token states carry each gene's own input value through the transformer's residual connections. So `last_tokens` can look "comparable" to gene space simply because the input is copied through, even if no layer uses the interaction. `ratio_to_input` compares the last layer with what entered the transformer.
-- Near 1: the transformer passes the interaction through.
-- Well below 1: the transformer shrinks it.
+**Not planned by default.** The default is to describe Part C as future work in the final report. Run it only if both of these hold:
+- the step 8 gate showed joint A3 above 0 with rollout near 0
+- Shreyan approves it after all step 8 runs are done, given the time left before the Dec 3 report
 
-The pooled views have no per-gene copy, so they are the less trivial test. Report all four views.
+The scGPT version needs no new code: the losses are already in `train_scgpt.py`, off by default. The GEARS version needs a fork and is not written (see the end of this file).
 
-## 12. Part C: can scGPT be made to carry state? (only if step 11 says "comparable")
-
-An architecture change alone cannot work. Norman gives no gradient for state-conditioning, because every training input is a control cell, so a new pathway would be ignored. scGPT already reads its input, so Part C needs no architecture change, only a training signal from singles. `train_scgpt.py` has two auxiliary losses, off by default (`src/rolloutprobe/aux_batches.py`):
+An architecture change alone cannot work. Norman gives no gradient for state-conditioning, because every training input is a control cell, so a new pathway would be ignored. scGPT already reads its input, so it needs no architecture change, only a training signal from singles (`src/rolloutprobe/aux_batches.py`):
 - **State:** input a real A cell with no flag; the target is another A cell. This contradicts scGPT's current "no flags → control" behaviour, which is the point.
 - **Saturation:** input a real A cell with A flagged; the target is another A cell, since A cells already have guide A active.
 
@@ -322,20 +324,20 @@ python scripts/make_figures.py
 
 - **Weights:** 1 and 1 is the starting point and is not tuned. Do not tune them on the test doubles. If the run is unstable, report it; do not search over weights.
 - **Check:** the training log prints the main loss and each auxiliary loss. The main validation Pearson delta should stay close to `scgpt_strict_s1`'s. If it drops a lot, the auxiliary losses are fighting the main task; report it.
-- **Question:** does carrying state make rollout compose? Compare `scgpt_carry` with `scgpt_strict` on:
+- **Question:** does carrying state let rollout express the interaction knowledge the joint prediction has? Compare `scgpt_carry` with `scgpt_strict` on:
   - A2 (`sens_rel_minus_null` should rise)
-  - A3 for `rollout_carried_ab` and `rollout_measured_carried_ab`, against the replicate and the ceiling
+  - A3 for `rollout_carried_ab` and `rollout_measured_carried_ab`, against joint A3, the replicate and the ceiling
   - carried-rollout advantage over addition
   - stability `step_ratio`, which should fall toward 0 if saturation was learned
-- **Expected best case:** rollout stops being a fixed sum and moves toward the joint prediction. No singles-only signal can teach how A modulates B, so A3 may stay near 0 even if A2 rises. That outcome isolates the limitation to the training data (failure type 2), and is a strong result.
+- **Expected best case:** rollout A3 moves toward joint A3. No singles-only signal can teach how A modulates B, so rollout A3 may stay near 0 even if A2 rises. That outcome isolates the limitation to the training data (failure type 2).
 
 ## Report back for steps 10–12
 
-The same format as above: for each step, the question, the prediction written here, the numbers with their zero, floor or ceiling, and which failure type they support. Include the Part B decision row and which threshold decided it.
+The same format as above: for each step, the question, the prediction written here, the numbers with their zero, floor or ceiling, and which failure type they support. For Part B, give `cross_half_signal` per view with its CI, and `ratio_to_input`. For Part C, either the results or "not run", with the step 8 gate result that decided it.
 
 ## Not written (and why)
 
-- **GEARS with state input (Part C for GEARS):** out = x + g(pert, x). It needs a fork of cell-gears' `GEARS_Model.forward`, so that the perturbation module also reads an embedding of the input. It also needs a training loop that feeds real single-perturbed cells as inputs, which GEARS's dataloader cannot do (it pairs control inputs with perturbed targets itself). This was not written because neither could be checked against the cell-gears source here. Only attempt it if scGPT Part C shows that state-carrying helps; otherwise there is no reason to expect it to.
-- **CPA** (after Part C, if at all): `cpa-tools`, strict split, behind `predict()`. It is interesting as a contrast because it composes in latent space by construction. Part B prediction for CPA: the latent residual is much smaller than in gene space, because its basal encoder is trained adversarially so that perturbation identity cannot be recovered from it. Not written: it needs a new environment (scvi-tools), and its API could not be checked here.
+- **GEARS with state input (Part C for GEARS):** out = x + g(pert, x). It needs a fork of cell-gears' `GEARS_Model.forward`, so that the perturbation module also reads an embedding of the input. It also needs a training loop that feeds real single-perturbed cells as inputs, which GEARS's dataloader cannot do (it pairs control inputs with perturbed targets itself). This was not written because neither could be checked against the cell-gears source here. It is future work for the final report, not a planned result.
+- **CPA** (after Part C, if at all): `cpa-tools`, strict split, behind `predict()`. It is interesting as a contrast because it composes in latent space by construction. Part B prediction for CPA (where Part B is a sharp test, because CPA has a real bottleneck): `cross_half_signal` in its basal latent is near 0, because its basal encoder is trained adversarially so that perturbation identity cannot be recovered from it. Not written: it needs a new environment (scvi-tools), and its API could not be checked here.
 - **Discrete or quantised latent "state islands":** deliberately not built. Learning transitions between states needs (state_i, action) → state_j across many starting states. Norman only has (control, action) → state_j, which is one row of that table. A discrete latent changes the representation without adding the missing observations.
 - **Final report** (due Dec 3): copy `report/midterm/` to `report/final/`. Add the rollout results (from `results/rollout_analysis.csv`, figure 4 `figures/fig4_advantage_vs_eta`) to Experiments and Analysis, plus a Conclusion and Team Contributions, which the final rubric requires.

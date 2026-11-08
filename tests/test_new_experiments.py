@@ -159,6 +159,8 @@ def test_latent_script_gene_space(synth):
     m = pairs.merge(synth["truth"], on=["pert_a", "pert_b"])
     # planted interactions show up as a larger noise-corrected residual
     assert m[m.interacting]["rel_cross"].min() > m[~m.interacting]["rel_cross"].median()
+    summ = pd.read_csv(synth["res"] / "latent_genes.csv").set_index("quantity")
+    assert summ.loc["cross_half_signal", "lo"] > 0          # planted interactions: signal above the null
 
 
 def test_stability_and_drift_scripts_on_oracle(synth):

@@ -17,6 +17,17 @@ Views:
 GEARS is not supported on purpose: its input cell never enters a latent
 (out = x + g(pert)), so there is nothing to probe.
 
+Diagnostic for the write-up, not a gate. Two summaries matter:
+    cross_half_signal   per view, mean over pairs of (r_1 . r_2) / (d_1 . d_2) with a
+                        bootstrap CI and the share of pairs above 0. r_1 . r_2 has
+                        expectation 0 when there is no interaction signal (independent
+                        halves), so "CI excludes 0" is a test with a built-in null,
+                        the same split-half logic as eta in gene space.
+    ratio_to_input      last layer vs transformer input. scGPT's per-gene residual
+                        stream carries each gene's input value, so the absolute
+                        latent residual mostly reflects the input expression; the
+                        change across layers is the informative part.
+
 Writes results/latent_<tag>_pairs.csv (per pair, view, split seed) and
 results/latent_<tag>.csv (pooled summaries with bootstrap CIs over pairs).
 Embeddings are cached in --cache (default models/latent_cache/<tag>, ignored by
@@ -33,7 +44,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from rolloutprobe import latent, splits             # noqa: E402
+from rolloutprobe import latent, splits, stats      # noqa: E402
 from rolloutprobe.config import load_config        # noqa: E402
 from rolloutprobe.data import load_h5ad            # noqa: E402
 
@@ -100,6 +111,10 @@ def main():
         t = pp.xs(v, level="view").reindex(ref.index)
         summ.append({"model": args.tag, "view": v, "quantity": "pooled_rel_cross",
                      "mean": latent.pooled_rel_cross(t["rr_cross"], t["dd_cross"]), "n": len(t)})
+        frac = (t["rr_cross"] / t["dd_cross"]).replace([np.inf, -np.inf], np.nan).dropna()
+        summ.append({"model": args.tag, "view": v, "quantity": "cross_half_signal",
+                     **stats.bootstrap_mean(frac.to_numpy(), args.n_boot, 0),
+                     "share_positive": float((frac > 0).mean())})
         summ.append({"model": args.tag, "view": v, "quantity": "median_rep_cos",
                      "mean": float(t["rep_cos"].median()), "n": len(t)})
         if v != "genes":
@@ -116,8 +131,8 @@ def main():
     path = out_dir / f"latent_{args.tag}.csv"
     s.to_csv(path, index=False)
     pd.set_option("display.width", 160)
-    print("\nrelative residual = share of the double's shift that is non-additive, noise-corrected "
-          "(cross-half); ratio < 1 = the view keeps less of the interaction than gene space")
+    print("\ncross_half_signal: mean (r1.r2)/(d1.d2) over pairs; 0 = no interaction signal (built-in null)."
+          "\nratio_to_input: last layer vs transformer input (the change across layers is what is informative)")
     print(s.to_string(index=False))
     print(f"wrote {path}")
 
