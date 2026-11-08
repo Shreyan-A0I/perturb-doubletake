@@ -13,10 +13,10 @@ This README is the shared source of truth for the project: context, decisions, d
 
 *Update this block whenever something changes.*
 
-- **Last updated:** 2026-11-04 by Datta
-- **Next deadline:** Midterm report, Nov 6 (confirm exact time)
-- **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; midterm report written; scGPT fine-tuning under way
-- **Blockers:** None. Branch `datta/midterm-baselines` holds all midterm results plus the GEARS GO-graph code fix (commit da61e8e); review before merging to main
+- **Last updated:** 2026-11-07 by Shreyan
+- **Next deadline:** Nov 15 checkpoint (A2 on scGPT); final report and presentation Dec 3
+- **Phase:** Post-midterm GPU runs, step by step in [docs/TASKS.md](docs/TASKS.md): GEARS full rollout, scGPT fine-tuning (3 training seeds), A1–A3 for every model, CPA in the idle window (step 8b). Midterm submitted
+- **Blockers:** None. The scGPT and CPA code has not run yet; TASKS.md step 0 (and 8b, C2) is the review before the first GPU run
 
 ---
 
@@ -50,14 +50,16 @@ This README is the shared source of truth for the project: context, decisions, d
   - `carried`: second step gets label B only; A survives only through the predicted state
   - `restated`: second step gets label A+B
 - **Order and saturation are consistency checks only.** Norman measures joint perturbations, so it cannot validate application order or repeated activation biologically
-- **Gate before adding any model (reviewer point 2):** it must pass a full input → output → input example (`scripts/roundtrip_check.py`)
+- **Input → output → input check (reviewer point 2):** every model runs `scripts/roundtrip_check.py`. Since 2026-11-07 it is a diagnostic, not the gate: it passes real cells with *no* perturbation label, which scGPT and CPA are trained to map to control, so it is an unfair test for them. The gate for whether composition can be tested is input sensitivity (A2, [TASKS.md](docs/TASKS.md) step 8)
 - **Models:**
   - GEARS is the anchor, trained two ways (reviewer point 4)
     - standard split: diagnostic, how good is it as intended?
     - strict split: our experiment
-  - scGPT is second, only after it passes the round-trip gate
+  - scGPT is second; its joint and rollout predictions run whatever the round-trip diagnostic shows, and A2 decides whether composition is testable
   - Geneformer is out: its perturbation output is an embedding shift with no expression decoder
-  - State and CPA are out for time
+  - CPA is third, off the critical path (TASKS.md step 8b): it composes in latent space by design, so it is the third distinct mechanism and the one model where latent additivity (Part B) is a sharp test
+  - State is out for time
+- **2026-11-07:** Input sensitivity (A2) replaces the round-trip check as the gate. Every model also records its own singles (A1) and interaction recovery (A3, against the replicate correlation and the noiseless ceiling √replicate). scGPT gets 3 training seeds and all 5 split seeds. Part C runs only if scGPT's joint A3 is above 0 while its rollout is not; by default it is future work. Part B is a diagnostic, not a gate. CPA is added (step 8b)
 - **2026-11-02:** Calendar is 4.5 weeks, not 8. Experiment 3 (ComboSciPlex, Replogle) is cut
 - **2026-11-03:** Midterm scope set to baselines, eta reliability, and GEARS joint prediction
 - **2026-11-06:** GEARS's prediction ignores its input cell (out = x + g(pert)), so its rollout is additive by construction and it cannot test composition. scGPT is now required, not optional, and comes off the cut list. scGPT fine-tuning on the strict split is under way
@@ -179,20 +181,22 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 - [ ] [S] Full rollout on GEARS strict: both arms, both orders, measured-input control (`run_model.py` without `--joint-only`)
 - [ ] [S] GEARS standard-split rollout as the diagnostic comparison
-- [ ] [S] scGPT: wrapper adapter, then round-trip gate. Only if it passes: joint + rollout
-- [ ] [D] Rollout analysis: advantage over additive vs eta (slope + CI), order dependence vs eta, arm comparison
-- [ ] [D] Stability: saturation ratio, drift from real cells over k = 1..10 steps
-- [ ] [S] Nov 15: scGPT passes the round-trip gate (fine-tuning under way). A failure is diagnosed, not cut
+- [ ] [S] scGPT: fine-tune (training seeds 1–3), round-trip diagnostic, joint + rollout on all split seeds (TASKS.md steps 6–8)
+- [ ] [S] Nov 15: A2 and A3 on scGPT, split seed 0, reported (TASKS.md step 8). A null result is written up, not rescued
+- [ ] [S] CPA: env (one-hour timebox), train, A1–A3 and Part B (TASKS.md step 8b)
+- [ ] [D] Rollout analysis: advantage over additive vs eta (slope + CI), order dependence vs eta, arm comparison, A1–A3 (`analyze_rollout.py`; code done)
+- [ ] [D] Stability and discriminator drift (TASKS.md step 10; code done)
+- [ ] [S] Part B diagnostic on scGPT (TASKS.md step 11; code done). Part C only if the step 8 gate passes and Shreyan approves
 - [ ] [S+D] Draft figures for final report by Nov 22
 - [ ] [S+D] Final report + presentation (last class Dec 3)
 
 ### Cut order if time runs short
 
 1. Discriminator-based drift metric
-2. Five split seeds down to three
+2. scGPT training seeds 2 and 3 on split seed 0 only (seed 1 keeps all 5; TASKS.md "GPU budget"). Cut seeds, not cells
 3. Stability experiment (rollout composition is the core question)
 
-scGPT is not on this list: GEARS cannot test composition, so scGPT is the only model that can.
+scGPT is not on this list: GEARS cannot test composition, so scGPT is the only model that can. CPA is not ranked here; it is timeboxed instead (TASKS.md step 8b).
 
 ---
 
