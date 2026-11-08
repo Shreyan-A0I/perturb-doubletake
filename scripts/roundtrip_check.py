@@ -3,6 +3,7 @@ No model joins the roster until this passes.
 
     python scripts/roundtrip_check.py --model gears --model-dir models/gears_strict_s1 --tag gears_strict
     python scripts/roundtrip_check.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
+    python scripts/roundtrip_check.py --model cpa --model-dir models/cpa_strict_s1 --tag cpa_strict
     python scripts/roundtrip_check.py --model oracle_additive --data data/synthetic/norman_like.h5ad --tag oracle
 
 For each test gene A, reports:
@@ -41,7 +42,7 @@ from run_model import build_model               # noqa: E402
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--model", required=True, choices=["gears", "scgpt", "oracle_additive"])
+    p.add_argument("--model", required=True, choices=["gears", "scgpt", "cpa", "oracle_additive"])
     p.add_argument("--tag", required=True)
     p.add_argument("--model-dir", default=None)
     p.add_argument("--gears-data-dir", default="data/gears")
@@ -66,6 +67,11 @@ def main():
     halves = splits.half_labels(data.cond, 0)
     pb = splits.pseudobulk_by_half(data, halves)
     model = build_model(args, data, pb, singles)
+    if hasattr(model, "can_perturb") and not args.genes:   # e.g. CPA has no embedding for held-out singles
+        ok = [g for g in data.cell_counts()[singles].sort_values(ascending=False).index if model.can_perturb((g,))]
+        if ok[:5] != genes:
+            print(f"default genes {genes} -> {ok[:5]} (the model cannot perturb some of them)")
+        genes = ok[:5]
     rng = np.random.default_rng(0)
 
     def cells(cond):

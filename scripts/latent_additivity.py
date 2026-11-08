@@ -2,6 +2,7 @@
 
     python scripts/latent_additivity.py --model genes --tag genes                 # gene space only, CPU
     python scripts/latent_additivity.py --model scgpt --model-dir models/scgpt_strict_s1 --tag scgpt_strict
+    python scripts/latent_additivity.py --model cpa --model-dir models/cpa_strict_s1 --tag cpa_strict
 
 Embeds real half-1 and half-2 cells of ctrl, A, B and AB for every strict test
 pair, with no perturbation flags, and compares the noise-corrected relative
@@ -13,6 +14,8 @@ Views:
     input_tokens, last_tokens   scGPT per-gene token states entering / leaving the
                                 transformer, flattened (genes x d)
     input_pooled, last_pooled   the same, averaged over genes (d)
+    basal                       CPA's basal latent z_basal = encoder(x), before the
+                                perturbation embedding is added (n_latent)
 
 GEARS is not supported on purpose: its input cell never enters a latent
 (out = x + g(pert)), so there is nothing to probe.
@@ -52,7 +55,7 @@ from rolloutprobe.data import load_h5ad            # noqa: E402
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/default.yaml")
-    p.add_argument("--model", required=True, choices=["genes", "scgpt"])
+    p.add_argument("--model", required=True, choices=["genes", "scgpt", "cpa"])
     p.add_argument("--tag", required=True)
     p.add_argument("--model-dir", default=None)
     p.add_argument("--data", default=None)
@@ -75,10 +78,10 @@ def main():
     pairs = splits.strict_split(data)["test"]
     conds = latent.needed_conditions(pairs)
 
-    if args.model == "scgpt":
+    if args.model in ("scgpt", "cpa"):
         from rolloutprobe.wrapper import get_predictor
-        m = get_predictor("scgpt", model_dir=args.model_dir, genes=data.genes, device=args.device,
-                          batch_size=args.batch_size)
+        kw = {"batch_size": args.batch_size} if args.model == "scgpt" else {}
+        m = get_predictor(args.model, model_dir=args.model_dir, genes=data.genes, device=args.device, **kw)
 
         def embed(X):
             return {"genes": X.mean(axis=0), **m.embed_means(X)}
