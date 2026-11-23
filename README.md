@@ -13,10 +13,10 @@ This README is the shared source of truth for the project: context, decisions, d
 
 *Update this block whenever something changes.*
 
-- **Last updated:** 2026-11-04 by Datta
-- **Next deadline:** Midterm report, Nov 6 (confirm exact time)
-- **Phase:** Midterm sprint. Baselines, eta reliability, GEARS (both splits, joint) and round-trip done on real Norman data; midterm report written; scGPT fine-tuning under way
-- **Blockers:** None. Branch `datta/midterm-baselines` holds all midterm results plus the GEARS GO-graph code fix (commit da61e8e); review before merging to main
+- **Last updated:** 2026-11-23 by Datta
+- **Next deadline:** Final report + presentation, Dec 3
+- **Phase:** Final-report sprint. TASKS steps 0-11 done on 4 H100s: GEARS rollout (both splits), scGPT (3 training seeds x 5 split seeds), CPA (8b), stability, drift, Part B. Part C not run (gate not met). Final report not started
+- **Blockers:** None. Branch `datta/final-analysis` holds all post-midterm results; review before merging to main. GEARS strict joint MSE varies 0.11-0.23 across identical retrains (no torch seed), see Log
 
 ---
 
@@ -177,13 +177,15 @@ Step-by-step version of the setup and results items, with commands and expected 
 
 ### After the midterm
 
-- [ ] [S] Full rollout on GEARS strict: both arms, both orders, measured-input control (`run_model.py` without `--joint-only`)
-- [ ] [S] GEARS standard-split rollout as the diagnostic comparison
-- [ ] [S] scGPT: wrapper adapter, then round-trip gate. Only if it passes: joint + rollout
-- [ ] [D] Rollout analysis: advantage over additive vs eta (slope + CI), order dependence vs eta, arm comparison
-- [ ] [D] Stability: saturation ratio, drift from real cells over k = 1..10 steps
-- [ ] [S] Nov 15: scGPT passes the round-trip gate (fine-tuning under way). A failure is diagnosed, not cut
-- [ ] [S+D] Draft figures for final report by Nov 22
+- [x] [S] Full rollout on GEARS strict: both arms, both orders, measured-input control (`run_model.py` without `--joint-only`) (D for S 2026-11-23, retrained model)
+- [x] [S] GEARS standard-split rollout as the diagnostic comparison (D for S 2026-11-23)
+- [x] [S] scGPT: wrapper adapter, then round-trip gate. Only if it passes: joint + rollout (D for S 2026-11-23: 3 training seeds x 5 split seeds; round-trip is a diagnostic per TASKS)
+- [x] [S] CPA: env, train, A1-A3 and Part B (TASKS 8b) (D for S 2026-11-23)
+- [x] [S] Part B diagnostic on scGPT (TASKS 11) (D for S 2026-11-23). Part C not run: gate not met
+- [x] [D] Rollout analysis: advantage over additive vs eta (slope + CI), order dependence vs eta, arm comparison (D 2026-11-23)
+- [x] [D] Stability: saturation ratio, drift from real cells over k = 1..10 steps (D 2026-11-23, GEARS and scGPT s1)
+- [x] [S] Nov 15: scGPT A2 and A3 reported (D for S 2026-11-23, late; see Log)
+- [x] [S+D] Draft figures for final report by Nov 22 (D 2026-11-23: figs 1-4 regenerated with all models)
 - [ ] [S+D] Final report + presentation (last class Dec 3)
 
 ### Cut order if time runs short
@@ -216,6 +218,9 @@ scGPT is not on this list: GEARS cannot test composition, so scGPT is the only m
 
 *One line per meaningful result or change, newest first. This doubles as the record for the final report's team contributions section.*
 
+- 2026-11-23 [D] CPA (8b, seed 1, 65 epochs, Gaussian loss on log-normalised X): joint MSE@20DEG advantage over addition -0.505 [-0.573, -0.436], 2% of pairs better; singles fit Pearson delta 0.26 (under-fit). A2 excess +1.64 [1.40, 1.87], driven by erasure of the A state (e(Xa)-e(X0) corr 0.93 with -D_A), not composition. A3 joint +0.008 (CI includes 0); measured-input carried +0.23 equals the pure-erasure reference. Part B: basal latent keeps interaction signal (cross-half 1.36 [0.74, 2.16]) that no prediction path uses. Both the A2 and Part B predictions in TASKS were wrong
+- 2026-11-23 [D for S] scGPT, 3 training seeds x 5 split seeds (best val Pearson delta 0.271 / 0.168 / 0.387). Joint advantage over addition -0.093 / -0.286 / -0.107; carried rollout -0.360 / -0.414 / -0.314. A2 excess +1.18 / +0.97 / +1.11, all CIs above 0, seeds agree; but output carries only 16-23% of the input state and predicted cells have 3-6% of control variance: scGPT overwrites its input (data/objective failure). A3 joint 0.16 / 0.12 / 0.12 (ceiling 0.87), at or below interaction-blind references (0.18-0.22). Part C gate not met (carried A3 >= joint). Stability saturates (step ratio 0.23 at step 2). Round-trip PASS on raw r only (delta r 0.04-0.24). Part B: last-layer tokens pass the interaction through (ratio 0.96)
+- 2026-11-23 [D for S] GEARS retrained (models lost with old clone). Strict joint 0.231 / 0.610 on 128 doubles, standard 0.252 / 0.618 on 71; an extra identical strict run gave 0.113, so with the midterm's 0.181 there is ~2x run-to-run spread (no torch seed). Rollout advantage (strict): joint -0.149, carried -0.079, restated ab -0.238; carried order gap ~1e-8, restated 0.173. A2 = 0 (float rounding), A3 carried exactly 0, joint A3 0.011 strict / 0.107 standard (0.167 all genes). Stability step ratio exactly 1. Drift accuracy 0.94-1.00 vs scale 0.91. Round-trip rerun on the new model: PASS, saturation 1.0
 - 2026-11-04 [D for S] GEARS seed 1, 20 epochs. Joint MSE@20DEG / Pearson delta: strict 0.181 / 0.673 on 128 doubles (additive on same pairs 0.082 / 0.872; GEARS better on 14% of pairs); standard 0.232 / 0.605 on 71 unseen doubles (additive 0.085 / 0.869). Round-trip on strict: PASS, saturation ratio exactly 1.0. GEARS's forward pass uses input expression only as a final residual (out = x + g(pert)), so its predictions are state-independent and carried rollout is exactly x + g(A) + g(B)
 - 2026-11-04 [D] Baselines on Norman (131 doubles, strict split, 5 seeds): additive best, MSE@20DEG 0.081, Pearson delta 0.873; low-rank additive 0.140 / 0.789. Eta split-half Spearman 0.944, 61% of eta^2 is signal. Additive MSE by eta tertile 0.028 / 0.063 / 0.152 (Spearman 0.82 vs eta)
 - 2026-11-03 [S] Scaffold built and tested on synthetic data; repo initialized

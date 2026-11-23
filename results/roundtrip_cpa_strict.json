@@ -1,0 +1,75 @@
+{
+  "verdict": "PASS",
+  "rows": [
+    {
+      "gene": "KLF1",
+      "in_min": 0.0,
+      "in_max": 5.178874492645264,
+      "in_mean": 0.1049794852733612,
+      "out_min": -0.018037982285022736,
+      "out_max": 5.4989776611328125,
+      "out_mean": 0.10626649111509323,
+      "passthrough_real_r": 0.9918809533119202,
+      "passthrough_real_delta_r": 0.3192675709724426,
+      "passthrough_generated_r": 0.9995564818382263,
+      "passthrough_generated_delta_r": 0.7520031929016113,
+      "saturation_ratio": 0.862747311592102
+    },
+    {
+      "gene": "BAK1",
+      "in_min": 0.0,
+      "in_max": 5.178874492645264,
+      "in_mean": 0.1049794852733612,
+      "out_min": -0.025103624910116196,
+      "out_max": 5.217360019683838,
+      "out_mean": 0.1010122299194336,
+      "passthrough_real_r": 0.9981690645217896,
+      "passthrough_real_delta_r": 0.11368931829929352,
+      "passthrough_generated_r": 0.999350368976593,
+      "passthrough_generated_delta_r": -0.02720508724451065,
+      "saturation_ratio": 1.200329065322876
+    },
+    {
+      "gene": "CEBPE",
+      "in_min": 0.0,
+      "in_max": 5.178874492645264,
+      "in_mean": 0.1049794852733612,
+      "out_min": -0.02951611578464508,
+      "out_max": 5.562953472137451,
+      "out_mean": 0.11158996820449829,
+      "passthrough_real_r": 0.9671103954315186,
+      "passthrough_real_delta_r": 0.13229340314865112,
+      "passthrough_generated_r": 0.9987654089927673,
+      "passthrough_generated_delta_r": 0.7753467559814453,
+      "saturation_ratio": 0.9924925565719604
+    },
+    {
+      "gene": "ETS2",
+      "in_min": 0.0,
+      "in_max": 5.178874492645264,
+      "in_mean": 0.1049794852733612,
+      "out_min": -0.024934066459536552,
+      "out_max": 5.474228382110596,
+      "out_mean": 0.10911282151937485,
+      "passthrough_real_r": 0.9911165833473206,
+      "passthrough_real_delta_r": -0.05346628651022911,
+      "passthrough_generated_r": 0.9991727471351624,
+      "passthrough_generated_delta_r": 0.6754523515701294,
+      "saturation_ratio": 1.1393686532974243
+    },
+    {
+      "gene": "UBASH3B",
+      "in_min": 0.0,
+      "in_max": 5.178874492645264,
+      "in_mean": 0.1049794852733612,
+      "out_min": -0.022511424496769905,
+      "out_max": 4.792503833770752,
+      "out_mean": 0.09846965968608856,
+      "passthrough_real_r": 0.9970190525054932,
+      "passthrough_real_delta_r": 0.06166880577802658,
+      "passthrough_generated_r": 0.9984176158905029,
+      "passthrough_generated_delta_r": -0.6162766814231873,
+      "saturation_ratio": 0.5815287232398987
+    }
+  ]
+}
