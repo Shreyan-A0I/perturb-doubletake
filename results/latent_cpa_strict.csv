@@ -1,0 +1,8 @@
+model,view,quantity,mean,n,lo,hi,share_positive
+cpa_strict,genes,pooled_rel_cross,0.4264339624477749,131,,,
+cpa_strict,genes,cross_half_signal,0.26416097723976717,131,0.20268206431558455,0.33884408022355106,1.0
+cpa_strict,genes,median_rep_cos,0.49722050536649326,131,,,
+cpa_strict,basal,pooled_rel_cross,0.4309020504651655,131,,,
+cpa_strict,basal,cross_half_signal,1.3545421763086978,131,0.7423166753918452,2.1631503469473103,0.916030534351145
+cpa_strict,basal,median_rep_cos,0.9859231108495046,131,,,
+cpa_strict,basal,ratio_to_genes,1.010477795886011,131,0.884515870039211,1.1430835088512248,

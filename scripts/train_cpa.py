@@ -131,7 +131,8 @@ def main():
             "valid_mode": args.valid_mode, "val_singles": val, "val_singles_in_doubles": demoted,
             "seen_conditions": train, "test_conditions": [f"{a}+{b}" for a, b in strict["test"]],
             "model_params": {**MODEL_PARAMS, "seed": args.seed}, "trainer_params": TRAINER_PARAMS,
-            "epochs_run": int(len(model.epoch_history)) if model.epoch_history is not None else None}
+            "epochs_run": (int((model.epoch_history["mode"] == "train").sum())   # history has train and valid rows
+                           if model.epoch_history is not None else None)}
 
     # direct path (adapter) vs public CPA.predict, counterfactual setup as in the tutorial:
     # cells of a test double, X replaced by control cells, labels kept
